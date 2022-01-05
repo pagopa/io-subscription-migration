@@ -7,7 +7,7 @@ services:
     build:
       context: ./
       dockerfile: docker/functions/Dockerfile
-    env_file: 
+    env_file:
       - .env
     environment:
       - languageWorkers__node__arguments=--inspect=0.0.0.0:5858
@@ -58,18 +58,6 @@ services:
       - "10005:10005"
     depends_on:
       - fnstorage
-    networks:
-      - io-fn
-
-  cosmosdb:
-    image: cosmosdb
-    env_file:
-      - .env
-    build:
-      context: ./
-      dockerfile: docker/cosmosdb/Dockerfile
-    ports:
-      - ${COSMOSDB_PORT}:3000
     networks:
       - io-fn
 
