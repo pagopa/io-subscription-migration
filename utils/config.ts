@@ -12,25 +12,63 @@ import { pipe } from "fp-ts/lib/function";
 
 import { readableReport } from "@pagopa/ts-commons/lib/reporters";
 import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
+import { withDefault } from "@pagopa/ts-commons/lib/types";
 
 // global app configuration
-export type IConfig = t.TypeOf<typeof IConfig>;
-// eslint-disable-next-line @typescript-eslint/ban-types
-export const IConfig = t.interface({
-  AzureWebJobsStorage: NonEmptyString,
-
+export type IDecodableConfig = t.TypeOf<typeof IDecodableConfig>;
+export const IDecodableConfig = t.interface({
+  COSMOSDB_CONNECTIONSTRING: NonEmptyString,
   COSMOSDB_KEY: NonEmptyString,
-  COSMOSDB_NAME: NonEmptyString,
   COSMOSDB_URI: NonEmptyString,
-
-  QueueStorageConnection: NonEmptyString,
-
-  isProduction: t.boolean
+  COSMOSDB_NAME: NonEmptyString,
+  isProduction: withDefault(t.boolean, false),
 });
+
+export type IDecodableConfigAPIM = t.TypeOf<typeof IDecodableConfigAPIM>;
+export const IDecodableConfigAPIM = t.interface({
+  APIM_SERVICE_NAME: NonEmptyString,
+  APIM_RESOURCE_GROUP: NonEmptyString,
+  APIM_SUBSCRIPTION_ID: NonEmptyString,
+  APIM_CLIENT_ID: NonEmptyString,
+  APIM_SECRET: NonEmptyString,
+  APIM_TENANT_ID: NonEmptyString,
+});
+
+export type IDecodableConfigPostgreSQL = t.TypeOf<
+  typeof IDecodableConfigPostgreSQL
+>;
+export const IDecodableConfigPostgreSQL = t.interface({
+  DB_USER: NonEmptyString,
+  DB_HOST: NonEmptyString,
+  DB_NAME: NonEmptyString,
+  DB_PASSWORD: NonEmptyString,
+  DB_PORT: NonEmptyString,
+  DB_IDLE_TIMEOUT: withDefault(t.number, 30000),
+});
+
+export type IGlobalConfig = t.TypeOf<typeof IGlobalConfig>;
+export const IGlobalConfig = t.intersection([
+  IDecodableConfig,
+  IDecodableConfigAPIM,
+  IDecodableConfigPostgreSQL,
+]);
+
+export type IConfig = IGlobalConfig;
+export const IConfig = new t.Type<IConfig>(
+  "IConfig",
+  (u: unknown): u is IConfig => IGlobalConfig.is(u),
+  (input, context) =>
+    pipe(
+      E.Do,
+      E.bind("config", () => IGlobalConfig.validate(input, context)),
+      E.map(({ config }) => ({ ...config }))
+    ),
+  t.identity
+);
 
 export const envConfig = {
   ...process.env,
-  isProduction: process.env.NODE_ENV === "production"
+  isProduction: process.env.NODE_ENV === "production",
 };
 
 // No need to re-evaluate this object for each call
