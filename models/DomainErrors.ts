@@ -1,5 +1,6 @@
 export enum DbError {
   Error = "Db Error",
+  PrimaryKey = "Primary Key already exists",
 }
 
 export enum ApimSubError {

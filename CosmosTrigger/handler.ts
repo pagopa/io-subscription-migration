@@ -36,8 +36,9 @@ export const handleServicesChange = async (
   const res = await pipe(documents, () =>
     processoA(
       apimClient,
-      config as IDecodableConfigAPIM,
-      config as IDecodableConfigPostgreSQL,
+      config,
+      // config as IDecodableConfigAPIM,
+      // config as IDecodableConfigPostgreSQL,
       pool,
       documents
     )
@@ -48,8 +49,9 @@ export const handleServicesChange = async (
 
 export const processoA = (
   apimClient: ApiManagementClient,
-  apimConfig: IDecodableConfigAPIM,
-  dbConfig: IDecodableConfigPostgreSQL,
+  // apimConfig: IDecodableConfigAPIM,
+  // dbConfig: IDecodableConfigPostgreSQL,
+  config: IConfig,
   pool: PoolClient,
   documents: ReadonlyArray<unknown>
 ): ReadonlyArray<void | TE.TaskEither<
@@ -60,23 +62,25 @@ export const processoA = (
     documents,
     RA.map(validateDocument),
     RA.map((d) =>
-      E.isRight(d)
-        ? processB(apimClient, apimConfig, dbConfig, pool, d.right)
-        : log()
+      E.isRight(d) ? processB(apimClient, config, pool, d.right) : log()
     )
   );
 };
 
 export const validateDocument = (
   document: unknown
-): E.Either<Error, RetrievedServiceDocument> => {
-  return pipe(RetrievedServiceDocument.decode(document), E.mapLeft(toError));
+): E.Either<string, RetrievedServiceDocument> => {
+  return pipe(
+    RetrievedServiceDocument.decode(document),
+    E.mapLeft(() => `Errore su ${document}`)
+  );
 };
 
 export const processB = (
   apimClient: ApiManagementClient,
-  apimConfig: IDecodableConfigAPIM,
-  dbConfig: IDecodableConfigPostgreSQL,
+  // apimConfig: IDecodableConfigAPIM,
+  // dbConfig: IDecodableConfigPostgreSQL,
+  config: IConfig,
   pool: PoolClient,
   retrievedDocument: RetrievedServiceDocument
 ): TE.TaskEither<DbError | ApimSubError | ApimUserError, QueryResult> => {
@@ -88,16 +92,10 @@ export const processB = (
     4. Inserire i dati
     */
     retrievedDocument.subscriptionId,
-    (id) => getApimOwnerBySubscriptionId(apimConfig, apimClient, id),
-    TE.chain<ApimSubError | ApimUserError, ApimSubscriptionResponse, OwnerData>(
-      (res) => getApimUserByOwnerId(apimConfig, apimClient, res)
-    ),
+    (id) => getApimOwnerBySubscriptionId(config, apimClient, id),
+    TE.chainW((res) => getApimUserByOwnerId(config, apimClient, res)),
     TE.map((owner) => mapDataToTableRow(retrievedDocument, owner)),
-    TE.chain<
-      ApimSubError | ApimUserError | DbError,
-      MigrationRowDataTable,
-      QueryResult
-    >((data) => insertDataTable(pool, dbConfig, data))
+    TE.chainW((data) => insertDataTable(pool, config, data))
   );
   return res;
 };
@@ -120,7 +118,9 @@ export const getApimOwnerBySubscriptionId = (
     TE.mapLeft(() => ApimSubError.Error),
     TE.map((subscriptionResponse) => ({
       subscriptionId,
-      ownerId: subscriptionResponse.ownerId as NonEmptyString,
+      ownerId: (subscriptionResponse.ownerId as NonEmptyString).substring(
+        (subscriptionResponse.ownerId as NonEmptyString).lastIndexOf("/") + 1
+      ) as NonEmptyString,
     }))
   );
   return res;
@@ -173,7 +173,17 @@ export const insertDataTable = (
   dbConfig: IDecodableConfigPostgreSQL,
   data: MigrationRowDataTable
 ): TE.TaskEither<DbError, QueryResult> => {
-  return TE.of({} as QueryResult);
+  return pipe(
+    TE.tryCatch(() => {
+      return dbClient.query(`INSERT INTO "ServicesMigration"."Services"(
+	"subscriptionId", "organizationFiscalCode", "sourceId", "sourceName", "sourceSurname", "sourceEmail")
+	VALUES ('${data.subscriptionId}', '${data.organizationFiscalCode}', '${data.ownerId}', '${data.firstName}', '${data.lastName}', '${data.email}')`);
+    }, toError),
+    TE.mapLeft((e) => {
+      console.log(e);
+      return DbError.Error;
+    })
+  );
 };
 
 export const log = () => {};
