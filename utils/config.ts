@@ -46,25 +46,12 @@ export const IDecodableConfigPostgreSQL = t.interface({
   DB_IDLE_TIMEOUT: withDefault(t.number, 30000),
 });
 
-export type IGlobalConfig = t.TypeOf<typeof IGlobalConfig>;
-export const IGlobalConfig = t.intersection([
+export type IConfig = t.TypeOf<typeof IConfig>;
+export const IConfig = t.intersection([
   IDecodableConfig,
   IDecodableConfigAPIM,
   IDecodableConfigPostgreSQL,
 ]);
-
-export type IConfig = IGlobalConfig;
-export const IConfig = new t.Type<IConfig>(
-  "IConfig",
-  (u: unknown): u is IConfig => IGlobalConfig.is(u),
-  (input, context) =>
-    pipe(
-      E.Do,
-      E.bind("config", () => IGlobalConfig.validate(input, context)),
-      E.map(({ config }) => ({ ...config }))
-    ),
-  t.identity
-);
 
 export const envConfig = {
   ...process.env,

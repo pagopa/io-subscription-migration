@@ -10,12 +10,12 @@ CREATE TABLE IF NOT EXISTS "ServicesMigration"."Services"
     "sourceEmail" character varying NOT NULL,
     status character varying DEFAULT 'INITIAL',
     note text,
-    "updateAt" date,
+    "updateAt" timestamp default current_timestamp,
 );
 
 
 
 INSERT INTO "ServicesMigration"."Services"(
-	"subscriptionId", "organizationFiscalCode", "sourceId", "sourceName", "sourceSurname", "sourceEmail", "updateAt")
-	VALUES (1, 2, 3, 'Lorenzo', 'Franceschini', 'postaforum@gmail.com', '2022-01-17');
+	"subscriptionId", "organizationFiscalCode", "sourceId", "sourceName", "sourceSurname", "sourceEmail")
+	VALUES (1, 2, 3, 'Lorenzo', 'Franceschini', 'postaforum@gmail.com');
 
