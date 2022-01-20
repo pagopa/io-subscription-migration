@@ -1,16 +1,16 @@
-/* eslint-disable prettier/prettier */
 import {
   NonEmptyString,
-  OrganizationFiscalCode,
+  OrganizationFiscalCode
 } from "@pagopa/ts-commons/lib/strings";
 import * as t from "io-ts";
 
 const RetrievedServiceDocumentR = t.interface({
   organizationFiscalCode: OrganizationFiscalCode,
   subscriptionId: NonEmptyString,
+  version: t.number
 });
 const RetrievedServiceDocumentO = t.partial({
-  serviceName: NonEmptyString,
+  serviceName: NonEmptyString
 });
 
 export const RetrievedServiceDocument = t.exact(

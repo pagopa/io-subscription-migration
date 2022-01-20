@@ -19,3 +19,12 @@ INSERT INTO "ServicesMigration"."Services"(
 	"subscriptionId", "organizationFiscalCode", "sourceId", "sourceName", "sourceSurname", "sourceEmail")
 	VALUES (1, 2, 3, 'Lorenzo', 'Franceschini', 'postaforum@gmail.com');
 
+
+INSERT INTO "ServicesMigration"."Services"(
+	"subscriptionId", "organizationFiscalCode", "sourceId", "sourceName",
+	"sourceSurname", "sourceEmail")
+	VALUES (1, 20, 3, 'Lorenzo', 'Franceschini', 'postaforum@gmail.com')
+	ON CONFLICT ("subscriptionId")
+	DO UPDATE
+		SET organizationFiscalCode = "EXCLUDED"."organizationFiscalCode";
+

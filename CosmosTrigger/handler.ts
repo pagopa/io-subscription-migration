@@ -89,27 +89,44 @@ export const mapDataToTableRow = (
   subscriptionId: retrievedDocument.subscriptionId
 });
 
+export const queryDataTable = (
+  dbClient: PoolClient,
+  query: string
+): TE.TaskEither<DbError, QueryResult> =>
+  pipe(
+    TE.tryCatch(() => dbClient.query(query), toError),
+    TE.mapLeft(() => DbError.Error)
+  );
+
 export const insertDataTable = (
   dbClient: PoolClient,
   dbConfig: IDecodableConfigPostgreSQL,
   data: MigrationRowDataTable
 ): TE.TaskEither<DbError, QueryResult> =>
-  pipe(
-    TE.tryCatch(
-      () =>
-        dbClient.query(`INSERT INTO "${dbConfig.DB_SCHEMA}"."${dbConfig.DB_TABLE}"(
+  queryDataTable(
+    dbClient,
+    `INSERT INTO "${dbConfig.DB_SCHEMA}"."${dbConfig.DB_TABLE}"(
 	"subscriptionId", "organizationFiscalCode", "sourceId", "sourceName", "sourceSurname", "sourceEmail")
-	VALUES ('${data.subscriptionId}', '${data.organizationFiscalCode}', '${data.ownerId}', '${data.firstName}', '${data.lastName}', '${data.email}')`),
-      toError
-    ),
-    TE.mapLeft(() => DbError.Error)
+	VALUES ('${data.subscriptionId}', '${data.organizationFiscalCode}', '${data.ownerId}', '${data.firstName}', '${data.lastName}', '${data.email}')`
+  );
+
+export const updateDataTable = (
+  dbClient: PoolClient,
+  dbConfig: IDecodableConfigPostgreSQL,
+  data: MigrationRowDataTable
+): TE.TaskEither<DbError, QueryResult> =>
+  queryDataTable(
+    dbClient,
+    `UPDATE "${dbConfig.DB_SCHEMA}"."${dbConfig.DB_TABLE}" SET
+"organizationFiscalCode" = '${data.organizationFiscalCode}' WHERE
+"subscriptionId" = '${data.subscriptionId}';`
   );
 
 export const log = (d: unknown): void => {
   throw new Error(`To be implement ${d}`);
 };
 
-export const processB = (
+export const storeDocumentApimToDatabase = (
   apimClient: ApiManagementClient,
   config: IConfig,
   pool: PoolClient,
@@ -126,23 +143,10 @@ export const processB = (
     id => getApimOwnerBySubscriptionId(config, apimClient, id),
     TE.chainW(res => getApimUserByOwnerId(config, apimClient, res)),
     TE.map(owner => mapDataToTableRow(retrievedDocument, owner)),
-    TE.chainW(data => insertDataTable(pool, config, data))
-  );
-
-export const processoA = (
-  apimClient: ApiManagementClient,
-  config: IConfig,
-  pool: PoolClient,
-  documents: ReadonlyArray<unknown>
-): ReadonlyArray<void | TE.TaskEither<
-  DbError | ApimSubError | ApimUserError,
-  QueryResult
->> =>
-  pipe(
-    documents,
-    RA.map(validateDocument),
-    RA.map(d =>
-      E.isRight(d) ? processB(apimClient, config, pool, d.right) : log(d)
+    TE.chainW(data =>
+      retrievedDocument.version
+        ? updateDataTable(pool, config, data)
+        : insertDataTable(pool, config, data)
     )
   );
 
@@ -159,5 +163,13 @@ export const handleServicesChange = async (
 >>> => {
   context.log(`Process ${documents.length} documents.`);
   const pool = await client.connect();
-  return pipe(documents, () => processoA(apimClient, config, pool, documents));
+  return pipe(
+    documents,
+    RA.map(validateDocument),
+    RA.map(d =>
+      E.isRight(d)
+        ? storeDocumentApimToDatabase(apimClient, config, pool, d.right)
+        : log(d)
+    )
+  );
 };
