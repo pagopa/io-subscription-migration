@@ -1,3 +1,4 @@
+/* eslint-disable prettier/prettier */
 import {
   NonEmptyString,
   OrganizationFiscalCode,
@@ -5,8 +6,8 @@ import {
 import * as t from "io-ts";
 
 const RetrievedServiceDocumentR = t.interface({
-  subscriptionId: NonEmptyString,
   organizationFiscalCode: OrganizationFiscalCode,
+  subscriptionId: NonEmptyString,
 });
 const RetrievedServiceDocumentO = t.partial({
   serviceName: NonEmptyString,

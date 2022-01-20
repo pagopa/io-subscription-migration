@@ -19,43 +19,45 @@ export type IDecodableConfig = t.TypeOf<typeof IDecodableConfig>;
 export const IDecodableConfig = t.interface({
   COSMOSDB_CONNECTIONSTRING: NonEmptyString,
   COSMOSDB_KEY: NonEmptyString,
-  COSMOSDB_URI: NonEmptyString,
   COSMOSDB_NAME: NonEmptyString,
-  isProduction: withDefault(t.boolean, false),
+  COSMOSDB_URI: NonEmptyString,
+  isProduction: withDefault(t.boolean, false)
 });
 
 export type IDecodableConfigAPIM = t.TypeOf<typeof IDecodableConfigAPIM>;
 export const IDecodableConfigAPIM = t.interface({
-  APIM_SERVICE_NAME: NonEmptyString,
-  APIM_RESOURCE_GROUP: NonEmptyString,
-  APIM_SUBSCRIPTION_ID: NonEmptyString,
   APIM_CLIENT_ID: NonEmptyString,
+  APIM_RESOURCE_GROUP: NonEmptyString,
   APIM_SECRET: NonEmptyString,
-  APIM_TENANT_ID: NonEmptyString,
+  APIM_SERVICE_NAME: NonEmptyString,
+  APIM_SUBSCRIPTION_ID: NonEmptyString,
+  APIM_TENANT_ID: NonEmptyString
 });
 
 export type IDecodableConfigPostgreSQL = t.TypeOf<
   typeof IDecodableConfigPostgreSQL
 >;
 export const IDecodableConfigPostgreSQL = t.interface({
-  DB_USER: NonEmptyString,
   DB_HOST: NonEmptyString,
+  DB_IDLE_TIMEOUT: withDefault(t.number, 30000),
   DB_NAME: NonEmptyString,
   DB_PASSWORD: NonEmptyString,
   DB_PORT: NonEmptyString,
-  DB_IDLE_TIMEOUT: withDefault(t.number, 30000),
+  DB_SCHEMA: NonEmptyString,
+  DB_TABLE: NonEmptyString,
+  DB_USER: NonEmptyString
 });
 
 export type IConfig = t.TypeOf<typeof IConfig>;
 export const IConfig = t.intersection([
   IDecodableConfig,
   IDecodableConfigAPIM,
-  IDecodableConfigPostgreSQL,
+  IDecodableConfigPostgreSQL
 ]);
 
 export const envConfig = {
   ...process.env,
-  isProduction: process.env.NODE_ENV === "production",
+  isProduction: process.env.NODE_ENV === "production"
 };
 
 // No need to re-evaluate this object for each call

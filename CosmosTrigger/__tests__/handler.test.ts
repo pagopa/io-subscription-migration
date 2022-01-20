@@ -5,24 +5,80 @@ import {
   insertDataTable,
   mapDataToTableRow,
   processB,
-  processoA,
-  validateDocument,
 } from "../handler";
 import {
   EmailString,
   NonEmptyString,
   OrganizationFiscalCode,
 } from "@pagopa/ts-commons/lib/strings";
-import { getConfigOrThrow, IDecodableConfigAPIM } from "../../utils/config";
+import {
+  getConfigOrThrow,
+  IDecodableConfigAPIM,
+  IDecodableConfigPostgreSQL,
+} from "../../utils/config";
 import { getApiClient } from "../../utils/apim";
-import { OwnerData } from "../../models/Domain";
 import { ApimSubscriptionResponse } from "../../models/DomainApimResponse";
 import { clientDB } from "../../utils/dbconnector";
+import { ApiManagementClient } from "@azure/arm-apimanagement";
+import { QueryResult } from "pg";
 
-const mockApimClient = jest.fn() as any;
-const mockApimConfig = jest.fn() as any;
-const mockDbConfig = jest.fn() as any;
-const mockPool = jest.fn() as any;
+const mockSubscriptionId = "01EYNQ08CFNATVH1YBN8D14Y8S" as NonEmptyString;
+const mockOwnerId = "01EYNPZXQJF9A2DBTH5GYB951V" as NonEmptyString;
+const mockOrganizationFiscalCode = "01234567891" as OrganizationFiscalCode;
+const mockRetrieveDocument = {
+  subscriptionId: mockSubscriptionId,
+  organizationFiscalCode: mockOrganizationFiscalCode,
+};
+const mockApimSubscriptionResponse = {
+  subscriptionId: mockSubscriptionId,
+  ownerId: mockOwnerId,
+} as ApimSubscriptionResponse;
+const mockApimUserReponse = {
+  id: mockOwnerId,
+  subscriptionId: mockSubscriptionId,
+  ownerId: mockOwnerId,
+  firstName: "Nome" as NonEmptyString,
+  lastName: "Cognome" as NonEmptyString,
+  email: "email@test.com" as EmailString,
+};
+const mockMigrationRowDataTable = {
+  subscriptionId: mockSubscriptionId,
+  organizationFiscalCode: mockOrganizationFiscalCode,
+  ownerId: mockOwnerId,
+  firstName: "Nome" as NonEmptyString,
+  lastName: "Cognome" as NonEmptyString,
+  email: "email@test.com" as EmailString,
+};
+const mockGetClient = () => ({
+  subscription: {
+    get: jest
+      .fn()
+      .mockImplementation(() => Promise.resolve(mockApimSubscriptionResponse)),
+  },
+  user: {
+    get: jest
+      .fn()
+      .mockImplementation(() => Promise.resolve(mockApimUserReponse)),
+  },
+});
+const mockApimClient = {
+  getClient: mockGetClient,
+};
+
+const mockQueryResult = {
+  command: "INSERT",
+  rowCount: 1,
+} as QueryResult;
+const mockClient = {
+  connect: jest.fn().mockImplementation(() =>
+    Promise.resolve({
+      query: jest
+        .fn()
+        .mockImplementation(() => Promise.resolve(mockQueryResult)),
+    })
+  ),
+};
+
 const mockDocuments = [
   {
     subscriptionId: "01FG981SCZVVDT5E7DPZ6Z2ZR7" as NonEmptyString,
@@ -40,36 +96,19 @@ const mockDocuments = [
     serviceName: "Lorenzo Test" as NonEmptyString,
   },
 ];
-const mockOwner = {
-  id: "01EYNPZXQJF9A2DBTH5GYB951V" as NonEmptyString,
-  subscriptionId: "01EYNQ08CFNATVH1YBN8D14Y8S" as NonEmptyString,
-  ownerId: "01EYNPZXQJF9A2DBTH5GYB951V" as NonEmptyString,
-  organizationFiscalCode: "01234567891" as OrganizationFiscalCode,
-  firstName: "Lorenzo" as NonEmptyString,
-  lastName: "Franceschini" as NonEmptyString,
-  email: "email@test.com" as EmailString,
-};
 
-const config = getConfigOrThrow();
+const mockConfig = {};
+
+// const config = getConfigOrThrow();
 describe("getApimOwnerBySubscriptionId", () => {
   it("should have valid properties", async () => {
-    const apimClient = getApiClient(
-      {
-        clientId: config.APIM_CLIENT_ID,
-        secret: config.APIM_SECRET,
-        tenantId: config.APIM_TENANT_ID,
-      },
-      config.APIM_SUBSCRIPTION_ID
-    );
-    const subscriptionId = "01EYNQ08CFNATVH1YBN8D14Y8S";
+    const apimClient = (mockApimClient.getClient() as unknown) as ApiManagementClient;
 
     const res = await getApimOwnerBySubscriptionId(
-      config as IDecodableConfigAPIM,
+      mockConfig as IDecodableConfigAPIM,
       apimClient,
-      subscriptionId as NonEmptyString
+      mockSubscriptionId
     )();
-
-    console.log(res);
 
     expect(isRight(res)).toBe(true);
     if (isRight(res)) {
@@ -77,102 +116,91 @@ describe("getApimOwnerBySubscriptionId", () => {
       expect(res.right).toHaveProperty("ownerId");
     }
   });
+  it("should response with Left for invalid client", async () => {
+    const apimClient = mockApimClient.getClient();
+    apimClient.subscription.get.mockImplementationOnce(() =>
+      Promise.reject(
+        new Error(
+          "The provided subscription identifier is malformed or invalid."
+        )
+      )
+    );
+
+    const res = await getApimOwnerBySubscriptionId(
+      mockConfig as IDecodableConfigAPIM,
+      (apimClient as unknown) as ApiManagementClient,
+      mockSubscriptionId
+    )();
+
+    expect(isRight(res)).toBe(false);
+    if (isLeft(res)) {
+      expect(res.left).toEqual("Apim Subscription Error");
+    }
+  });
 });
 
 describe("getApimUserByOwnerId", () => {
   it("should have valid properties", async () => {
-    const apimClient = getApiClient(
-      {
-        clientId: config.APIM_CLIENT_ID,
-        secret: config.APIM_SECRET,
-        tenantId: config.APIM_TENANT_ID,
-      },
-      config.APIM_SUBSCRIPTION_ID
-    );
-    const apimSubscriptionResponse = {
-      subscriptionId: "01EYNQ08CFNATVH1YBN8D14Y8S",
-      ownerId: "01EYNPZXQJF9A2DBTH5GYB951V",
-    };
+    const apimClient = (mockApimClient.getClient() as unknown) as ApiManagementClient;
 
     const res = await getApimUserByOwnerId(
-      config as IDecodableConfigAPIM,
+      mockConfig as IDecodableConfigAPIM,
       apimClient,
-      apimSubscriptionResponse as ApimSubscriptionResponse
+      mockApimSubscriptionResponse
     )();
 
-    console.log(res);
-
     expect(isRight(res)).toBe(true);
-    // if (isRight(res)) {
-    //   expect(res.right).toHaveProperty("subscriptionId");
-    //   expect(res.right).toHaveProperty("ownerId");
-    // }
+    if (isRight(res)) {
+      expect(res.right).toHaveProperty("subscriptionId");
+      expect(res.right).toHaveProperty("ownerId");
+      expect(res.right).toHaveProperty("id");
+      expect(res.right).toHaveProperty("firstName");
+      expect(res.right).toHaveProperty("lastName");
+      expect(res.right).toHaveProperty("email");
+    }
   });
 });
 
 describe("mapDataToTableRow", () => {
   it("should create a valida data structure", () => {
-    const res = mapDataToTableRow(
-      {
-        subscriptionId: "01EYNQ0864HKYR1Q9PXPJ18W7G" as NonEmptyString,
-        organizationFiscalCode: "01234567891" as OrganizationFiscalCode,
-      },
-      mockOwner
-    );
+    const res = mapDataToTableRow(mockRetrieveDocument, mockApimUserReponse);
 
-    // toMatchObject se hai qualche campo che non conosci a priori
-    expect(res).toMatchObject({
-      // id: expect.stringMatching(\regex)
-      subscriptionId: "01EYNQ0864HKYR1Q9PXPJ18W7G",
-      organizationFiscalCode: "01234567891",
-      ownerId: "01EYNPZXQJF9A2DBTH5GYB951V",
-      firstName: "Lorenzo",
-      lastName: "Franceschini",
-      email: "email@test.com",
-    });
+    expect(res).toMatchObject(mockMigrationRowDataTable);
   });
 });
 
 describe("insertDataTable", () => {
   it("should insert valid data", async () => {
-    const client = await clientDB(config);
-    const clientPool = await client.connect();
+    const mockClientPool = await mockClient.connect();
+    const res = await insertDataTable(
+      mockClientPool,
+      mockConfig as IDecodableConfigPostgreSQL,
+      mockMigrationRowDataTable
+    )();
 
-    const res = await insertDataTable(clientPool, config, {
-      subscriptionId: "01EYNQ0864HKYR1Q9PXPJ18W7G" as NonEmptyString,
-      organizationFiscalCode: "01234567891" as OrganizationFiscalCode,
-      ownerId: "01EYNPZXQJF9A2DBTH5GYB951V" as NonEmptyString,
-      firstName: "Lorenzo" as NonEmptyString,
-      lastName: "Franceschini" as NonEmptyString,
-      email: "email@test.com" as EmailString,
-    })();
-
-    console.log(res);
-    expect(1).toBe(1);
-    client.end();
+    expect(isRight(res)).toBe(true);
+    if (isRight(res)) {
+      expect(res.right).toHaveProperty("command", "INSERT");
+      expect(res.right).toHaveProperty("rowCount", 1);
+    }
   });
 });
 
 describe("Process B", () => {
   it("should", async () => {
-    const apimClient = getApiClient(
-      {
-        clientId: config.APIM_CLIENT_ID,
-        secret: config.APIM_SECRET,
-        tenantId: config.APIM_TENANT_ID,
-      },
-      config.APIM_SUBSCRIPTION_ID
-    );
-    const client = await clientDB(config);
-    const clientPool = await client.connect();
+    const apimClient = (mockApimClient.getClient() as unknown) as ApiManagementClient;
+    const mockClientPool = await mockClient.connect();
     const res = await processB(
       apimClient,
-      config,
-      clientPool,
+      mockConfig as any,
+      mockClientPool,
       mockDocuments[0] as any
     )();
-
     console.log(res);
-    expect(1).toBe(1);
+    expect(isRight(res)).toBe(true);
+    if (isRight(res)) {
+      expect(res.right).toHaveProperty("command", "INSERT");
+      expect(res.right).toHaveProperty("rowCount", 1);
+    }
   });
 });

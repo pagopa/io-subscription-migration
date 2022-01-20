@@ -1,12 +1,12 @@
 export enum DbError {
   Error = "Db Error",
-  PrimaryKey = "Primary Key already exists",
+  PrimaryKey = "Primary Key already exists"
 }
 
 export enum ApimSubError {
-  Error = "Apim Subscription Error",
+  Error = "Apim Subscription Error"
 }
 
 export enum ApimUserError {
-  Error = "Apim User Error",
+  Error = "Apim User Error"
 }
