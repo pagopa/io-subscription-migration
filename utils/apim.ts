@@ -23,21 +23,5 @@ export function getApiClient(
 ): ApiManagementClient {
   const credential = new DefaultAzureCredential();
 
-  const client = new ApiManagementClient(credential, subscriptionId);
-
-  return client;
-  // return pipe(
-  //   TE.tryCatch(
-  //     () =>
-  //       msRestNodeAuth.loginWithServicePrincipalSecret(
-  //         servicePrincipalCreds.clientId,
-  //         servicePrincipalCreds.secret,
-  //         servicePrincipalCreds.tenantId
-  //       ),
-  //     toError
-  //   ),
-  //   TE.map(
-  //     (credentials) => new ApiManagementClient(credentials, subscriptionId)
-  //   )
-  // );
+  return new ApiManagementClient(credential, subscriptionId);
 }

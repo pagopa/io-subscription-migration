@@ -1,11 +1,12 @@
+/* eslint-disable prettier/prettier */
 import { EmailString, NonEmptyString } from "@pagopa/ts-commons/lib/strings";
 import * as t from "io-ts";
 
 const ApimUserResponseR = t.interface({
-  id: NonEmptyString,
-  firstName: NonEmptyString,
-  lastName: NonEmptyString,
   email: EmailString,
+  firstName: NonEmptyString,
+  id: NonEmptyString,
+  lastName: NonEmptyString,
 });
 const ApimUserResponseO = t.partial({});
 
@@ -15,8 +16,8 @@ export const ApimUserResponse = t.exact(
 export type ApimUserResponse = t.TypeOf<typeof ApimUserResponse>;
 
 const ApimSubscriptionResponseR = t.interface({
-  subscriptionId: NonEmptyString,
   ownerId: NonEmptyString,
+  subscriptionId: NonEmptyString,
 });
 const ApimSubscriptionResponseO = t.partial({});
 

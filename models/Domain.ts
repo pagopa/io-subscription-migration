@@ -1,12 +1,12 @@
 import {
   EmailString,
   NonEmptyString,
-  OrganizationFiscalCode,
+  OrganizationFiscalCode
 } from "@pagopa/ts-commons/lib/strings";
 import * as t from "io-ts";
 import {
   ApimSubscriptionResponse,
-  ApimUserResponse,
+  ApimUserResponse
 } from "./DomainApimResponse";
 
 export const OwnerData = t.intersection(
@@ -16,12 +16,12 @@ export const OwnerData = t.intersection(
 export type OwnerData = t.TypeOf<typeof OwnerData>;
 
 const MigrationRowDataTableR = t.interface({
-  subscriptionId: NonEmptyString,
-  ownerId: NonEmptyString,
-  organizationFiscalCode: OrganizationFiscalCode,
+  email: EmailString,
   firstName: NonEmptyString,
   lastName: NonEmptyString,
-  email: EmailString,
+  organizationFiscalCode: OrganizationFiscalCode,
+  ownerId: NonEmptyString,
+  subscriptionId: NonEmptyString
 });
 const MigrationRowDataTableO = t.partial({});
 
