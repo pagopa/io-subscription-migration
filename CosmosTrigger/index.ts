@@ -9,25 +9,19 @@ const config = getConfigOrThrow();
 const run = async (
   context: Context,
   documents: ReadonlyArray<unknown>
-): Promise<void> => {
+): Promise<ReturnType<typeof handleServicesChange>> => {
   // istanzio il client Post Pool
   const client = clientDB(config);
   const apimClient = getApiClient(
     {
       clientId: config.APIM_CLIENT_ID,
       secret: config.APIM_SECRET,
-      tenantId: config.APIM_TENANT_ID,
+      tenantId: config.APIM_TENANT_ID
     },
     config.APIM_SUBSCRIPTION_ID
   );
 
-  return handleServicesChange(
-    context,
-    config,
-    apimClient,
-    documents,
-    client
-  ) as any;
+  return handleServicesChange(context, config, apimClient, documents, client);
 };
 
 export default run;

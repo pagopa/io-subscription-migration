@@ -4,21 +4,18 @@ import {
   getApimUserByOwnerId,
   insertDataTable,
   mapDataToTableRow,
-  processB,
+  storeDocumentApimToDatabase
 } from "../handler";
 import {
   EmailString,
   NonEmptyString,
-  OrganizationFiscalCode,
+  OrganizationFiscalCode
 } from "@pagopa/ts-commons/lib/strings";
 import {
-  getConfigOrThrow,
   IDecodableConfigAPIM,
-  IDecodableConfigPostgreSQL,
+  IDecodableConfigPostgreSQL
 } from "../../utils/config";
-import { getApiClient } from "../../utils/apim";
 import { ApimSubscriptionResponse } from "../../models/DomainApimResponse";
-import { clientDB } from "../../utils/dbconnector";
 import { ApiManagementClient } from "@azure/arm-apimanagement";
 import { QueryResult } from "pg";
 
@@ -28,10 +25,11 @@ const mockOrganizationFiscalCode = "01234567891" as OrganizationFiscalCode;
 const mockRetrieveDocument = {
   subscriptionId: mockSubscriptionId,
   organizationFiscalCode: mockOrganizationFiscalCode,
+  version: 0
 };
 const mockApimSubscriptionResponse = {
   subscriptionId: mockSubscriptionId,
-  ownerId: mockOwnerId,
+  ownerId: mockOwnerId
 } as ApimSubscriptionResponse;
 const mockApimUserReponse = {
   id: mockOwnerId,
@@ -39,7 +37,7 @@ const mockApimUserReponse = {
   ownerId: mockOwnerId,
   firstName: "Nome" as NonEmptyString,
   lastName: "Cognome" as NonEmptyString,
-  email: "email@test.com" as EmailString,
+  email: "email@test.com" as EmailString
 };
 const mockMigrationRowDataTable = {
   subscriptionId: mockSubscriptionId,
@@ -47,59 +45,58 @@ const mockMigrationRowDataTable = {
   ownerId: mockOwnerId,
   firstName: "Nome" as NonEmptyString,
   lastName: "Cognome" as NonEmptyString,
-  email: "email@test.com" as EmailString,
+  email: "email@test.com" as EmailString
 };
 const mockGetClient = () => ({
   subscription: {
     get: jest
       .fn()
-      .mockImplementation(() => Promise.resolve(mockApimSubscriptionResponse)),
+      .mockImplementation(() => Promise.resolve(mockApimSubscriptionResponse))
   },
   user: {
     get: jest
       .fn()
-      .mockImplementation(() => Promise.resolve(mockApimUserReponse)),
-  },
+      .mockImplementation(() => Promise.resolve(mockApimUserReponse))
+  }
 });
 const mockApimClient = {
-  getClient: mockGetClient,
+  getClient: mockGetClient
 };
 
 const mockQueryResult = {
   command: "INSERT",
-  rowCount: 1,
+  rowCount: 1
 } as QueryResult;
 const mockClient = {
   connect: jest.fn().mockImplementation(() =>
     Promise.resolve({
       query: jest
         .fn()
-        .mockImplementation(() => Promise.resolve(mockQueryResult)),
+        .mockImplementation(() => Promise.resolve(mockQueryResult))
     })
-  ),
+  )
 };
 
 const mockDocuments = [
   {
     subscriptionId: "01FG981SCZVVDT5E7DPZ6Z2ZR7" as NonEmptyString,
     organizationFiscalCode: "11111111111" as OrganizationFiscalCode,
-    serviceName: "Servizi scolastici 2!" as NonEmptyString,
+    serviceName: "Servizi scolastici 2!" as NonEmptyString
   },
   {
     subscriptionId: "01EYNQ08CFNATVH1YBN8D14Y8S" as NonEmptyString,
     organizationFiscalCode: "01234567891" as OrganizationFiscalCode,
-    serviceName: "Lorenzo Test" as NonEmptyString,
+    serviceName: "Lorenzo Test" as NonEmptyString
   },
   {
     subscriptionI: "01EYNQ08CFNATVH1YBN8D14Y8S" as NonEmptyString,
     organizationFiscalCode: "01234567891" as OrganizationFiscalCode,
-    serviceName: "Lorenzo Test" as NonEmptyString,
-  },
+    serviceName: "Lorenzo Test" as NonEmptyString
+  }
 ];
 
 const mockConfig = {};
 
-// const config = getConfigOrThrow();
 describe("getApimOwnerBySubscriptionId", () => {
   it("should have valid properties", async () => {
     const apimClient = (mockApimClient.getClient() as unknown) as ApiManagementClient;
@@ -186,11 +183,11 @@ describe("insertDataTable", () => {
   });
 });
 
-describe("Process B", () => {
+describe("storeDocumentApimToDatabase", () => {
   it("should", async () => {
     const apimClient = (mockApimClient.getClient() as unknown) as ApiManagementClient;
     const mockClientPool = await mockClient.connect();
-    const res = await processB(
+    const res = await storeDocumentApimToDatabase(
       apimClient,
       mockConfig as any,
       mockClientPool,
