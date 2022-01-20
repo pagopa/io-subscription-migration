@@ -16,12 +16,18 @@ const run = async (
     {
       clientId: config.APIM_CLIENT_ID,
       secret: config.APIM_SECRET,
-      tenantId: config.APIM_TENANT_ID
+      tenantId: config.APIM_TENANT_ID,
     },
     config.APIM_SUBSCRIPTION_ID
   );
 
-  return handleServicesChange(context, config, apimClient, documents, client);
+  return handleServicesChange(
+    context,
+    config,
+    apimClient,
+    documents,
+    client
+  ) as any;
 };
 
 export default run;
