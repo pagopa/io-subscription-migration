@@ -7,7 +7,9 @@ import * as dotenv from "dotenv";
 import * as RA from "fp-ts/lib/ReadonlyArray";
 import * as E from "fp-ts/lib/Either";
 import * as TE from "fp-ts/lib/TaskEither";
+import * as O from "fp-ts/lib/Option";
 import { EmailString, NonEmptyString } from "@pagopa/ts-commons/lib/strings";
+import { fromPredicate } from "fp-ts/lib/FromEither";
 import {
   IDbError,
   IApimSubError,
@@ -36,6 +38,19 @@ export const validateDocument = (
     E.mapLeft(() => `Errore su ${document}`)
   );
 
+export const parseOwnerIdFullPath = (
+  fullPath: NonEmptyString
+): O.Option<NonEmptyString> =>
+  pipe(
+    fullPath,
+    f => f.split("/"),
+    RA.last,
+    O.chain(s => {
+      const decoded = NonEmptyString.decode(s);
+      return E.isRight(decoded) ? O.some(decoded.right) : O.none;
+    })
+  );
+
 export const getApimOwnerBySubscriptionId = (
   apimConfig: IDecodableConfigAPIM,
   apimClient: ApiManagementClient,
@@ -52,10 +67,24 @@ export const getApimOwnerBySubscriptionId = (
       toError
     ),
     TE.mapLeft(() => ({ kind: "apimsuberror" as const })),
-    TE.map(subscriptionResponse => ({
-      ownerId: (subscriptionResponse.ownerId as NonEmptyString).substring(
-        (subscriptionResponse.ownerId as NonEmptyString).lastIndexOf("/") + 1
-      ) as NonEmptyString,
+    TE.chain(subscriptionResponse =>
+      pipe(
+        subscriptionResponse.ownerId,
+        NonEmptyString.decode,
+        E.mapLeft(_ => ({
+          kind: "apimsuberror" as const /* TODO: add error detail */
+        })),
+        E.map(parseOwnerIdFullPath),
+        E.chainW(
+          E.fromOption(() => ({
+            kind: "apimsuberror" as const /* TODO: add error detail */
+          }))
+        ),
+        TE.fromEither
+      )
+    ),
+    TE.map(ownerId => ({
+      ownerId,
       subscriptionId
     }))
   );

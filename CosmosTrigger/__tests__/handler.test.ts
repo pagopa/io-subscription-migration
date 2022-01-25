@@ -1,9 +1,11 @@
+import * as O from "fp-ts/lib/Option";
 import { isLeft, isRight } from "fp-ts/lib/Either";
 import {
   getApimOwnerBySubscriptionId,
   getApimUserBySubscription,
   insertDataTable,
   mapDataToTableRow,
+  parseOwnerIdFullPath,
   storeDocumentApimToDatabase
 } from "../handler";
 import {
@@ -198,6 +200,19 @@ describe("storeDocumentApimToDatabase", () => {
     if (isRight(res)) {
       expect(res.right).toHaveProperty("command", "INSERT");
       expect(res.right).toHaveProperty("rowCount", 1);
+    }
+  });
+});
+
+describe("parseOwnerIdFullPath", () => {
+  it("should parse valid owner Id full path", async () => {
+    const fullPath = "" as NonEmptyString;
+    const expected = "";
+    const parsed = parseOwnerIdFullPath(fullPath);
+    if (O.isSome(parsed)) {
+      expect(parsed.value).toEqual(expected);
+    } else {
+      fail("Expected some value, received none");
     }
   });
 });
