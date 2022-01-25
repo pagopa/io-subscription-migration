@@ -16,11 +16,11 @@ export const OwnerData = t.intersection(
 export type OwnerData = t.TypeOf<typeof OwnerData>;
 
 const MigrationRowDataTableR = t.interface({
-  email: EmailString,
-  firstName: NonEmptyString,
-  lastName: NonEmptyString,
   organizationFiscalCode: OrganizationFiscalCode,
-  ownerId: NonEmptyString,
+  sourceEmail: EmailString,
+  sourceId: NonEmptyString,
+  sourceName: NonEmptyString,
+  sourceSurname: NonEmptyString,
   subscriptionId: NonEmptyString
 });
 const MigrationRowDataTableO = t.partial({});

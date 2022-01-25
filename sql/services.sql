@@ -23,8 +23,10 @@ INSERT INTO "ServicesMigration"."Services"(
 INSERT INTO "ServicesMigration"."Services"(
 	"subscriptionId", "organizationFiscalCode", "sourceId", "sourceName",
 	"sourceSurname", "sourceEmail")
-	VALUES (1, 20, 3, 'Lorenzo', 'Franceschini', 'postaforum@gmail.com')
+	VALUES (1, 33, 3, 'Lorenzo', 'Franceschini', 'postaforum@gmail.com')
 	ON CONFLICT ("subscriptionId")
+	
 	DO UPDATE
-		SET organizationFiscalCode = "EXCLUDED"."organizationFiscalCode";
+		SET "organizationFiscalCode" = "excluded"."organizationFiscalCode"
+		WHERE "ServicesMigration"."Services"."status" <> 'PENDING'
 

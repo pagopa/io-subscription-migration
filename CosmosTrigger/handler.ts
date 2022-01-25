@@ -124,11 +124,11 @@ export const mapDataToTableRow = (
     readonly apimSubscription: ApimSubscriptionResponse;
   }
 ): MigrationRowDataTable => ({
-  email: apimData.apimUser.email,
-  firstName: apimData.apimUser.firstName,
-  lastName: apimData.apimUser.lastName,
   organizationFiscalCode: retrievedDocument.organizationFiscalCode,
-  ownerId: apimData.apimSubscription.ownerId,
+  sourceEmail: apimData.apimUser.email,
+  sourceId: apimData.apimSubscription.ownerId,
+  sourceName: apimData.apimUser.firstName,
+  sourceSurname: apimData.apimUser.lastName,
   subscriptionId: retrievedDocument.subscriptionId
 });
 
@@ -141,29 +141,19 @@ export const queryDataTable = (
     TE.mapLeft(() => ({ kind: "dberror" as const }))
   );
 
-export const insertDataTable = (
-  dbClient: PoolClient,
-  dbConfig: IDecodableConfigPostgreSQL,
-  data: MigrationRowDataTable
-): TE.TaskEither<IDbError, QueryResult> =>
-  queryDataTable(
-    dbClient,
-    `INSERT INTO "${dbConfig.DB_SCHEMA}"."${dbConfig.DB_TABLE}"(
-	"subscriptionId", "organizationFiscalCode", "sourceId", "sourceName", "sourceSurname", "sourceEmail")
-	VALUES ('${data.subscriptionId}', '${data.organizationFiscalCode}', '${data.ownerId}', '${data.firstName}', '${data.lastName}', '${data.email}')`
-  );
-
-export const updateDataTable = (
-  dbClient: PoolClient,
-  dbConfig: IDecodableConfigPostgreSQL,
-  data: MigrationRowDataTable
-): TE.TaskEither<IDbError, QueryResult> =>
-  queryDataTable(
-    dbClient,
-    `UPDATE "${dbConfig.DB_SCHEMA}"."${dbConfig.DB_TABLE}" SET
-"organizationFiscalCode" = '${data.organizationFiscalCode}' WHERE
-"subscriptionId" = '${data.subscriptionId}';`
-  );
+export const createUpsertSql = (dbConfig: IDecodableConfigPostgreSQL) => (
+  data: MigrationRowDataTable,
+  excludeStatus: "PENDING" = "PENDING"
+): NonEmptyString =>
+  `INSERT INTO "${dbConfig.DB_SCHEMA}"."${dbConfig.DB_TABLE}"(
+        "subscriptionId", "organizationFiscalCode", "sourceId", "sourceName",
+        "sourceSurname", "sourceEmail")
+        VALUES ('${data.subscriptionId}', '${data.organizationFiscalCode}', '${data.sourceId}', '${data.sourceName}', '${data.sourceSurname}', '${data.sourceEmail}')
+        ON CONFLICT ("subscriptionId")
+        DO UPDATE
+            SET "organizationFiscalCode" = "excluded"."organizationFiscalCode"
+            WHERE "ServicesMigration"."Services"."status" <> '${excludeStatus}'
+    ` as NonEmptyString;
 
 export const log = (d: unknown): void => {
   throw new Error(`To be implement ${d}`);
@@ -195,14 +185,8 @@ export const storeDocumentApimToDatabase = (
       )
     ),
     TE.map(apimData => mapDataToTableRow(retrievedDocument, apimData)),
-    TE.chainW(data =>
-      /**
-       * Mimic an upsert
-       */
-      retrievedDocument.version
-        ? updateDataTable(pool, config, data)
-        : insertDataTable(pool, config, data)
-    )
+    TE.map(createUpsertSql(config)),
+    TE.chainW(sql => queryDataTable(pool, sql))
   );
 
 export const createServiceChangeHandler = (

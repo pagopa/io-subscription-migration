@@ -3,7 +3,6 @@ import { isLeft, isRight } from "fp-ts/lib/Either";
 import {
   getApimOwnerBySubscriptionId,
   getApimUserBySubscription,
-  insertDataTable,
   mapDataToTableRow,
   parseOwnerIdFullPath,
   storeDocumentApimToDatabase
@@ -43,10 +42,10 @@ const mockApimUserReponse = {
 const mockMigrationRowDataTable = {
   subscriptionId: mockSubscriptionId,
   organizationFiscalCode: mockOrganizationFiscalCode,
-  ownerId: mockOwnerId,
-  firstName: "Nome" as NonEmptyString,
-  lastName: "Cognome" as NonEmptyString,
-  email: "email@test.com" as EmailString
+  sourceId: mockOwnerId,
+  sourceName: "Nome" as NonEmptyString,
+  sourceSurname: "Cognome" as NonEmptyString,
+  sourceEmail: "email@test.com" as EmailString
 };
 const mockGetClient = () => ({
   subscription: {
@@ -165,23 +164,6 @@ describe("mapDataToTableRow", () => {
     });
 
     expect(res).toMatchObject(mockMigrationRowDataTable);
-  });
-});
-
-describe("insertDataTable", () => {
-  it("should insert valid data", async () => {
-    const mockClientPool = await mockClient.connect();
-    const res = await insertDataTable(
-      mockClientPool,
-      mockConfig as IDecodableConfigPostgreSQL,
-      mockMigrationRowDataTable
-    )();
-
-    expect(isRight(res)).toBe(true);
-    if (isRight(res)) {
-      expect(res.right).toHaveProperty("command", "INSERT");
-      expect(res.right).toHaveProperty("rowCount", 1);
-    }
   });
 });
 
