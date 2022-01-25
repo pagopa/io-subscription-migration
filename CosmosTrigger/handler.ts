@@ -150,17 +150,20 @@ export const storeDocumentApimToDatabase = (
     )
   );
 
-export const handleServicesChange = async (
-  context: Context,
+export const createServiceChangeHandler = (
   config: IConfig,
   apimClient: ApiManagementClient,
-  documents: ReadonlyArray<unknown>,
   client: Pool
-): Promise<ReadonlyArray<void | TE.TaskEither<
-  ApimSubError | ApimUserError | DbError,
-  /* eslint-disable  @typescript-eslint/no-explicit-any */
-  QueryResult<any>
->>> => {
+) => async (
+  context: Context,
+  documents: ReadonlyArray<unknown>
+): Promise<
+  ReadonlyArray<void | TE.TaskEither<
+    ApimSubError | ApimUserError | DbError,
+    /* eslint-disable  @typescript-eslint/no-explicit-any */
+    QueryResult<any>
+  >>
+> => {
   context.log(`Process ${documents.length} documents.`);
   const pool = await client.connect();
   return pipe(
