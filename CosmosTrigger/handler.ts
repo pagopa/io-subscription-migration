@@ -2,14 +2,13 @@ import { Context } from "@azure/functions";
 import { ApiManagementClient } from "@azure/arm-apimanagement";
 import { Pool, PoolClient, QueryResult } from "pg";
 import { toError } from "fp-ts/lib/Either";
-import { pipe } from "fp-ts/lib/function";
+import { flow, pipe } from "fp-ts/lib/function";
 import * as dotenv from "dotenv";
 import * as RA from "fp-ts/lib/ReadonlyArray";
 import * as E from "fp-ts/lib/Either";
 import * as TE from "fp-ts/lib/TaskEither";
 import * as O from "fp-ts/lib/Option";
-import { EmailString, NonEmptyString } from "@pagopa/ts-commons/lib/strings";
-import { fromPredicate } from "fp-ts/lib/FromEither";
+import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
 import {
   IDbError,
   IApimSubError,
@@ -104,13 +103,18 @@ export const getApimUserBySubscription = (
         ),
       toError
     ),
-    TE.mapLeft(() => ({ kind: "apimusererror" as const })),
-    TE.map(userResponse => ({
-      email: userResponse.email as EmailString,
-      firstName: userResponse.firstName as NonEmptyString,
-      id: userResponse.id as NonEmptyString,
-      lastName: userResponse.lastName as NonEmptyString
-    }))
+    TE.mapLeft(() => ({
+      kind: "apimusererror" as const /* TODO: add error detail */
+    })),
+    TE.chainW(
+      flow(
+        ApimUserResponse.decode,
+        TE.fromEither,
+        TE.mapLeft(() => ({
+          kind: "apimusererror" as const /* TODO: add error detail */
+        }))
+      )
+    )
   );
 
 export const mapDataToTableRow = (

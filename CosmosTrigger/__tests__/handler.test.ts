@@ -204,7 +204,7 @@ describe("storeDocumentApimToDatabase", () => {
   });
 });
 
-describe("parseOwnerIdFullPath", () => {
+/* describe("parseOwnerIdFullPath", () => {
   it("should parse valid owner Id full path", async () => {
     const fullPath = "" as NonEmptyString;
     const expected = "";
@@ -216,3 +216,4 @@ describe("parseOwnerIdFullPath", () => {
     }
   });
 });
+*/
