@@ -16,6 +16,7 @@ import {
   DomainError
 } from "../models/DomainErrors";
 import {
+  ApimDelegateUserResponse,
   ApimSubscriptionResponse,
   ApimUserResponse
 } from "../models/DomainApimResponse";
@@ -120,7 +121,7 @@ export const getApimUserBySubscription = (
 export const mapDataToTableRow = (
   retrievedDocument: RetrievedServiceDocument,
   apimData: {
-    readonly apimUser: ApimUserResponse;
+    readonly apimUser: ApimDelegateUserResponse;
     readonly apimSubscription: ApimSubscriptionResponse;
   }
 ): MigrationRowDataTable => ({
@@ -163,30 +164,42 @@ export const onInvalidDocument = (d: unknown): void => {
   throw new Error(`To be implement ${d}`);
 };
 
+export const onIgnoredDocument = (_d: unknown): void => void 0;
+
 export const storeDocumentApimToDatabase = (
   apimClient: ApiManagementClient,
   config: IConfig,
   pool: PoolClient,
   retrievedDocument: RetrievedServiceDocument
-): TE.TaskEither<DomainError, QueryResult> =>
+): TE.TaskEither<DomainError, QueryResult | void> =>
   pipe(
-    /*
-    1. Leggere l'OwnerId dalla Subscription Id
-    2. Leggere i dati dell'Owner dall'Owner Id
-    3. Mappare i dati
-    4. Inserire i dati
-    */
     retrievedDocument.subscriptionId,
+    // given the subscription, retrieve it's apim object
     id => getApimOwnerBySubscriptionId(config, apimClient, id),
     TE.chainW(apimSubscription =>
       pipe(
+        // given the subscription apim object, retrieve its owner's detail
         getApimUserBySubscription(config, apimClient, apimSubscription),
-        TE.map(apimUser => ({ apimSubscription, apimUser }))
+        // We only consider subscription owned by a Delegate,
+        //   otherwise we just ignore the document
+        // This because migration are meant to work only from a Delegate to its Organization,
+        //   not to migrate subscriptions between organizations
+        TE.chainW(apimUser =>
+          ApimDelegateUserResponse.is(apimUser)
+            ? // continue processing incoming document
+              pipe(
+                { apimSubscription, apimUser },
+                apimData => mapDataToTableRow(retrievedDocument, apimData),
+                createUpsertSql(config),
+                sql => queryDataTable(pool, sql)
+              )
+            : // processing is successful, just ignore the document
+              TE.of<DomainError, QueryResult | void>(
+                onIgnoredDocument(retrievedDocument)
+              )
+        )
       )
-    ),
-    TE.map(apimData => mapDataToTableRow(retrievedDocument, apimData)),
-    TE.map(createUpsertSql(config)),
-    TE.chainW(sql => queryDataTable(pool, sql))
+    )
   );
 
 export const createServiceChangeHandler = (
@@ -200,7 +213,7 @@ export const createServiceChangeHandler = (
   ReadonlyArray<void | TE.TaskEither<
     IApimSubError | IApimUserError | IDbError,
     /* eslint-disable  @typescript-eslint/no-explicit-any */
-    QueryResult<any>
+    QueryResult<any> | void
   >>
 > => {
   context.log(`Process ${documents.length} documents.`);
