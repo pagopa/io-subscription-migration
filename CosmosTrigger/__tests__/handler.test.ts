@@ -1,7 +1,7 @@
 import { isLeft, isRight } from "fp-ts/lib/Either";
 import {
   getApimOwnerBySubscriptionId,
-  getApimUserByOwnerId,
+  getApimUserBySubscription,
   insertDataTable,
   mapDataToTableRow,
   storeDocumentApimToDatabase
@@ -33,11 +33,10 @@ const mockApimSubscriptionResponse = {
 } as ApimSubscriptionResponse;
 const mockApimUserReponse = {
   id: mockOwnerId,
-  subscriptionId: mockSubscriptionId,
-  ownerId: mockOwnerId,
   firstName: "Nome" as NonEmptyString,
   lastName: "Cognome" as NonEmptyString,
-  email: "email@test.com" as EmailString
+  email: "email@test.com" as EmailString,
+  ...mockApimSubscriptionResponse
 };
 const mockMigrationRowDataTable = {
   subscriptionId: mockSubscriptionId,
@@ -131,16 +130,16 @@ describe("getApimOwnerBySubscriptionId", () => {
 
     expect(isRight(res)).toBe(false);
     if (isLeft(res)) {
-      expect(res.left).toEqual("Apim Subscription Error");
+      expect(res.left).toEqual({ kind: "apimsuberror" });
     }
   });
 });
 
-describe("getApimUserByOwnerId", () => {
+describe("getApimUserBySubscription", () => {
   it("should have valid properties", async () => {
     const apimClient = (mockApimClient.getClient() as unknown) as ApiManagementClient;
 
-    const res = await getApimUserByOwnerId(
+    const res = await getApimUserBySubscription(
       mockConfig as IDecodableConfigAPIM,
       apimClient,
       mockApimSubscriptionResponse
@@ -148,8 +147,6 @@ describe("getApimUserByOwnerId", () => {
 
     expect(isRight(res)).toBe(true);
     if (isRight(res)) {
-      expect(res.right).toHaveProperty("subscriptionId");
-      expect(res.right).toHaveProperty("ownerId");
       expect(res.right).toHaveProperty("id");
       expect(res.right).toHaveProperty("firstName");
       expect(res.right).toHaveProperty("lastName");
@@ -160,7 +157,10 @@ describe("getApimUserByOwnerId", () => {
 
 describe("mapDataToTableRow", () => {
   it("should create a valida data structure", () => {
-    const res = mapDataToTableRow(mockRetrieveDocument, mockApimUserReponse);
+    const res = mapDataToTableRow(mockRetrieveDocument, {
+      apimUser: mockApimUserReponse,
+      apimSubscription: mockApimSubscriptionResponse
+    });
 
     expect(res).toMatchObject(mockMigrationRowDataTable);
   });

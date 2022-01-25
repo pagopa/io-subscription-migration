@@ -1,12 +1,13 @@
-export enum DbError {
-  Error = "Db Error",
-  PrimaryKey = "Primary Key already exists"
+export interface IDbError {
+  readonly kind: "dberror";
 }
 
-export enum ApimSubError {
-  Error = "Apim Subscription Error"
+export interface IApimSubError {
+  readonly kind: "apimsuberror";
 }
 
-export enum ApimUserError {
-  Error = "Apim User Error"
+export interface IApimUserError {
+  readonly kind: "apimusererror";
 }
+
+export type DomainError = IDbError | IApimSubError | IApimUserError;

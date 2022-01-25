@@ -8,15 +8,23 @@ import * as RA from "fp-ts/lib/ReadonlyArray";
 import * as E from "fp-ts/lib/Either";
 import * as TE from "fp-ts/lib/TaskEither";
 import { EmailString, NonEmptyString } from "@pagopa/ts-commons/lib/strings";
-import { DbError, ApimSubError, ApimUserError } from "../models/DomainErrors";
-import { ApimSubscriptionResponse } from "../models/DomainApimResponse";
+import {
+  IDbError,
+  IApimSubError,
+  IApimUserError,
+  DomainError
+} from "../models/DomainErrors";
+import {
+  ApimSubscriptionResponse,
+  ApimUserResponse
+} from "../models/DomainApimResponse";
 import { RetrievedServiceDocument } from "../models/RetrievedService";
 import {
   IConfig,
   IDecodableConfigAPIM,
   IDecodableConfigPostgreSQL
 } from "../utils/config";
-import { MigrationRowDataTable, OwnerData } from "../models/Domain";
+import { MigrationRowDataTable } from "../models/Domain";
 
 dotenv.config();
 
@@ -32,7 +40,7 @@ export const getApimOwnerBySubscriptionId = (
   apimConfig: IDecodableConfigAPIM,
   apimClient: ApiManagementClient,
   subscriptionId: NonEmptyString
-): TE.TaskEither<ApimSubError, ApimSubscriptionResponse> =>
+): TE.TaskEither<IApimSubError, ApimSubscriptionResponse> =>
   pipe(
     TE.tryCatch(
       () =>
@@ -43,7 +51,7 @@ export const getApimOwnerBySubscriptionId = (
         ),
       toError
     ),
-    TE.mapLeft(() => ApimSubError.Error),
+    TE.mapLeft(() => ({ kind: "apimsuberror" as const })),
     TE.map(subscriptionResponse => ({
       ownerId: (subscriptionResponse.ownerId as NonEmptyString).substring(
         (subscriptionResponse.ownerId as NonEmptyString).lastIndexOf("/") + 1
@@ -52,11 +60,11 @@ export const getApimOwnerBySubscriptionId = (
     }))
   );
 
-export const getApimUserByOwnerId = (
+export const getApimUserBySubscription = (
   config: IDecodableConfigAPIM,
   apimClient: ApiManagementClient,
   apimSubscriptionResponse: ApimSubscriptionResponse
-): TE.TaskEither<ApimUserError, OwnerData> =>
+): TE.TaskEither<IApimUserError, ApimUserResponse> =>
   pipe(
     TE.tryCatch(
       () =>
@@ -67,9 +75,8 @@ export const getApimUserByOwnerId = (
         ),
       toError
     ),
-    TE.mapLeft(() => ApimUserError.Error),
+    TE.mapLeft(() => ({ kind: "apimusererror" as const })),
     TE.map(userResponse => ({
-      ...apimSubscriptionResponse,
       email: userResponse.email as EmailString,
       firstName: userResponse.firstName as NonEmptyString,
       id: userResponse.id as NonEmptyString,
@@ -79,30 +86,33 @@ export const getApimUserByOwnerId = (
 
 export const mapDataToTableRow = (
   retrievedDocument: RetrievedServiceDocument,
-  owner: OwnerData
+  apimData: {
+    readonly apimUser: ApimUserResponse;
+    readonly apimSubscription: ApimSubscriptionResponse;
+  }
 ): MigrationRowDataTable => ({
-  email: owner.email,
-  firstName: owner.firstName,
-  lastName: owner.lastName,
+  email: apimData.apimUser.email,
+  firstName: apimData.apimUser.firstName,
+  lastName: apimData.apimUser.lastName,
   organizationFiscalCode: retrievedDocument.organizationFiscalCode,
-  ownerId: owner.ownerId,
+  ownerId: apimData.apimSubscription.ownerId,
   subscriptionId: retrievedDocument.subscriptionId
 });
 
 export const queryDataTable = (
   dbClient: PoolClient,
   query: string
-): TE.TaskEither<DbError, QueryResult> =>
+): TE.TaskEither<IDbError, QueryResult> =>
   pipe(
     TE.tryCatch(() => dbClient.query(query), toError),
-    TE.mapLeft(() => DbError.Error)
+    TE.mapLeft(() => ({ kind: "dberror" as const }))
   );
 
 export const insertDataTable = (
   dbClient: PoolClient,
   dbConfig: IDecodableConfigPostgreSQL,
   data: MigrationRowDataTable
-): TE.TaskEither<DbError, QueryResult> =>
+): TE.TaskEither<IDbError, QueryResult> =>
   queryDataTable(
     dbClient,
     `INSERT INTO "${dbConfig.DB_SCHEMA}"."${dbConfig.DB_TABLE}"(
@@ -114,7 +124,7 @@ export const updateDataTable = (
   dbClient: PoolClient,
   dbConfig: IDecodableConfigPostgreSQL,
   data: MigrationRowDataTable
-): TE.TaskEither<DbError, QueryResult> =>
+): TE.TaskEither<IDbError, QueryResult> =>
   queryDataTable(
     dbClient,
     `UPDATE "${dbConfig.DB_SCHEMA}"."${dbConfig.DB_TABLE}" SET
@@ -126,12 +136,16 @@ export const log = (d: unknown): void => {
   throw new Error(`To be implement ${d}`);
 };
 
+export const onInvalidDocument = (d: unknown): void => {
+  throw new Error(`To be implement ${d}`);
+};
+
 export const storeDocumentApimToDatabase = (
   apimClient: ApiManagementClient,
   config: IConfig,
   pool: PoolClient,
   retrievedDocument: RetrievedServiceDocument
-): TE.TaskEither<DbError | ApimSubError | ApimUserError, QueryResult> =>
+): TE.TaskEither<DomainError, QueryResult> =>
   pipe(
     /*
     1. Leggere l'OwnerId dalla Subscription Id
@@ -141,9 +155,17 @@ export const storeDocumentApimToDatabase = (
     */
     retrievedDocument.subscriptionId,
     id => getApimOwnerBySubscriptionId(config, apimClient, id),
-    TE.chainW(res => getApimUserByOwnerId(config, apimClient, res)),
-    TE.map(owner => mapDataToTableRow(retrievedDocument, owner)),
+    TE.chainW(apimSubscription =>
+      pipe(
+        getApimUserBySubscription(config, apimClient, apimSubscription),
+        TE.map(apimUser => ({ apimSubscription, apimUser }))
+      )
+    ),
+    TE.map(apimData => mapDataToTableRow(retrievedDocument, apimData)),
     TE.chainW(data =>
+      /**
+       * Mimic an upsert
+       */
       retrievedDocument.version
         ? updateDataTable(pool, config, data)
         : insertDataTable(pool, config, data)
@@ -159,7 +181,7 @@ export const createServiceChangeHandler = (
   documents: ReadonlyArray<unknown>
 ): Promise<
   ReadonlyArray<void | TE.TaskEither<
-    ApimSubError | ApimUserError | DbError,
+    IApimSubError | IApimUserError | IDbError,
     /* eslint-disable  @typescript-eslint/no-explicit-any */
     QueryResult<any>
   >>
@@ -172,7 +194,7 @@ export const createServiceChangeHandler = (
     RA.map(d =>
       E.isRight(d)
         ? storeDocumentApimToDatabase(apimClient, config, pool, d.right)
-        : log(d)
+        : onInvalidDocument(d)
     )
   );
 };
