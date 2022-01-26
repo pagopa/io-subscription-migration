@@ -39,7 +39,9 @@ export const validateDocument = (
   );
 
 /*
+ ** The right full path for ownerID is in this kind of format:
  ** "/subscriptions/subid/resourceGroups/{resourceGroup}/providers/Microsoft.ApiManagement/service/{apimService}/users/5931a75ae4bbd512a88c680b",
+ ** resouce link: https://docs.microsoft.com/en-us/rest/api/apimanagement/current-ga/subscription/get
  */
 export const parseOwnerIdFullPath = (
   fullPath: NonEmptyString
