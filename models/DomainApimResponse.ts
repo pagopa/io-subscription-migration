@@ -58,7 +58,7 @@ export const ApimDelegateUserResponse = t.intersection([
 export type ApimOrganizationUserResponse = t.TypeOf<
   typeof ApimOrganizationUserResponse
 >;
-export const ApimOrganizationUserResponse = t.intersection([
+export const ApimOrganizationUserResponse = t.union([
   RawApimUserResponse.pipe(EnrichedApimUserResponse),
   t.interface({ kind: t.literal("organization") })
 ]);

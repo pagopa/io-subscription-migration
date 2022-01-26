@@ -16,12 +16,15 @@ import {
   IDecodableConfigAPIM,
   IDecodableConfigPostgreSQL
 } from "../../utils/config";
-import { ApimSubscriptionResponse } from "../../models/DomainApimResponse";
+import {
+  ApimDelegateUserResponse,
+  ApimSubscriptionResponse
+} from "../../models/DomainApimResponse";
 import { ApiManagementClient } from "@azure/arm-apimanagement";
 import { QueryResult } from "pg";
 
 const mockSubscriptionId = "01EYNQ08CFNATVH1YBN8D14Y8S" as NonEmptyString;
-const mockOwnerId = "01EYNPZXQJF9A2DBTH5GYB951V" as NonEmptyString;
+const mockOwnerId = "/subscriptions/subid/resourceGroups/resourceGroupName/providers/Microsoft.ApiManagement/service/apimServiceName/users/01EYNPZXQJF9A2DBTH5GYB951V" as NonEmptyString;
 const mockOrganizationFiscalCode = "01234567891" as OrganizationFiscalCode;
 const mockRetrieveDocument = {
   subscriptionId: mockSubscriptionId,
@@ -32,13 +35,19 @@ const mockApimSubscriptionResponse = {
   subscriptionId: mockSubscriptionId,
   ownerId: mockOwnerId
 } as ApimSubscriptionResponse;
-const mockApimUserReponse = {
+const mockApimDelegateUserReponse = {
+  id: mockOwnerId,
+  firstName: "Nome" as NonEmptyString,
+  lastName: "Cognome" as NonEmptyString,
+  email: "email@test.com" as EmailString
+} as ApimDelegateUserResponse;
+const mockApimOrganizationUserReponse = {
   id: mockOwnerId,
   firstName: "Nome" as NonEmptyString,
   lastName: "Cognome" as NonEmptyString,
   email: "email@test.com" as EmailString,
-  ...mockApimSubscriptionResponse
-};
+  note: "01234567891"
+} as ApimDelegateUserResponse;
 const mockMigrationRowDataTable = {
   subscriptionId: mockSubscriptionId,
   organizationFiscalCode: mockOrganizationFiscalCode,
@@ -56,7 +65,9 @@ const mockGetClient = () => ({
   user: {
     get: jest
       .fn()
-      .mockImplementation(() => Promise.resolve(mockApimUserReponse))
+      .mockImplementation(() =>
+        Promise.resolve(mockApimOrganizationUserReponse)
+      )
   }
 });
 const mockApimClient = {
@@ -137,7 +148,7 @@ describe("getApimOwnerBySubscriptionId", () => {
 });
 
 describe("getApimUserBySubscription", () => {
-  it("should have valid properties", async () => {
+  it("should have valid properties for Organization", async () => {
     const apimClient = (mockApimClient.getClient() as unknown) as ApiManagementClient;
 
     const res = await getApimUserBySubscription(
@@ -145,13 +156,32 @@ describe("getApimUserBySubscription", () => {
       apimClient,
       mockApimSubscriptionResponse
     )();
-
     expect(isRight(res)).toBe(true);
     if (isRight(res)) {
       expect(res.right).toHaveProperty("id");
       expect(res.right).toHaveProperty("firstName");
       expect(res.right).toHaveProperty("lastName");
       expect(res.right).toHaveProperty("email");
+      expect(res.right).toHaveProperty("kind", "organization");
+    }
+  });
+  it("should have valid properties for Delegate", async () => {
+    const apimClient = mockApimClient.getClient();
+    apimClient.user.get.mockImplementationOnce(() =>
+      Promise.resolve(mockApimDelegateUserReponse)
+    );
+    const res = await getApimUserBySubscription(
+      mockConfig as IDecodableConfigAPIM,
+      (apimClient as unknown) as ApiManagementClient,
+      mockApimSubscriptionResponse
+    )();
+    expect(isRight(res)).toBe(true);
+    if (isRight(res)) {
+      expect(res.right).toHaveProperty("id");
+      expect(res.right).toHaveProperty("firstName");
+      expect(res.right).toHaveProperty("lastName");
+      expect(res.right).toHaveProperty("email");
+      expect(res.right).toHaveProperty("kind", "delegate");
     }
   });
 });
@@ -159,7 +189,7 @@ describe("getApimUserBySubscription", () => {
 describe("mapDataToTableRow", () => {
   it("should create a valida data structure", () => {
     const res = mapDataToTableRow(mockRetrieveDocument, {
-      apimUser: mockApimUserReponse,
+      apimUser: mockApimDelegateUserReponse,
       apimSubscription: mockApimSubscriptionResponse
     });
 
@@ -177,7 +207,6 @@ describe("storeDocumentApimToDatabase", () => {
       mockClientPool,
       mockDocuments[0] as any
     )();
-    console.log(res);
     expect(isRight(res)).toBe(true);
     if (isRight(res)) {
       expect(res.right).toHaveProperty("command", "INSERT");

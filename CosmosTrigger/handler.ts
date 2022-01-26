@@ -38,17 +38,26 @@ export const validateDocument = (
     E.mapLeft(() => `Errore su ${document}`)
   );
 
+/*
+ ** "/subscriptions/subid/resourceGroups/{resourceGroup}/providers/Microsoft.ApiManagement/service/{apimService}/users/5931a75ae4bbd512a88c680b",
+ */
 export const parseOwnerIdFullPath = (
   fullPath: NonEmptyString
 ): O.Option<NonEmptyString> =>
   pipe(
     fullPath,
     f => f.split("/"),
-    RA.last,
-    O.chain(s => {
-      const decoded = NonEmptyString.decode(s);
-      return E.isRight(decoded) ? O.some(decoded.right) : O.none;
-    })
+    O.fromPredicate(a => a.length === 11),
+    O.chain(splittedPath =>
+      pipe(
+        splittedPath,
+        RA.last,
+        O.chain(s => {
+          const decoded = NonEmptyString.decode(s);
+          return E.isRight(decoded) ? O.some(decoded.right) : O.none;
+        })
+      )
+    )
   );
 
 export const getApimOwnerBySubscriptionId = (
