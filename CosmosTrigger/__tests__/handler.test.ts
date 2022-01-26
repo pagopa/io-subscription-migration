@@ -37,13 +37,13 @@ const mockApimSubscriptionResponse = {
 } as ApimSubscriptionResponse;
 const mockApimDelegateUserReponse = {
   id: mockOwnerId,
-  firstName: "Nome" as NonEmptyString,
-  lastName: "Cognome" as NonEmptyString,
+  firstName: "NomeDelegato" as NonEmptyString,
+  lastName: "CognomeDelegato" as NonEmptyString,
   email: "email@test.com" as EmailString
 } as ApimDelegateUserResponse;
 const mockApimOrganizationUserReponse = {
   id: mockOwnerId,
-  firstName: "Nome" as NonEmptyString,
+  firstName: "NomeOrganization" as NonEmptyString,
   lastName: "Cognome" as NonEmptyString,
   email: "email@test.com" as EmailString,
   note: "01234567891"
@@ -52,8 +52,8 @@ const mockMigrationRowDataTable = {
   subscriptionId: mockSubscriptionId,
   organizationFiscalCode: mockOrganizationFiscalCode,
   sourceId: mockOwnerId,
-  sourceName: "Nome" as NonEmptyString,
-  sourceSurname: "Cognome" as NonEmptyString,
+  sourceName: "NomeDelegato" as NonEmptyString,
+  sourceSurname: "CognomeDelegato" as NonEmptyString,
   sourceEmail: "email@test.com" as EmailString
 };
 const mockGetClient = () => ({
@@ -198,7 +198,7 @@ describe("mapDataToTableRow", () => {
 });
 
 describe("storeDocumentApimToDatabase", () => {
-  it("should", async () => {
+  it("should ignore a valid document from Organization", async () => {
     const apimClient = (mockApimClient.getClient() as unknown) as ApiManagementClient;
     const mockClientPool = await mockClient.connect();
     const res = await storeDocumentApimToDatabase(
@@ -207,6 +207,25 @@ describe("storeDocumentApimToDatabase", () => {
       mockClientPool,
       mockDocuments[0] as any
     )();
+    console.log(res);
+    expect(isRight(res)).toBe(true);
+    if (isRight(res)) {
+      expect(res.right).toBe(undefined);
+    }
+  });
+  it("should insert a valid document from Delegate", async () => {
+    const apimClient = mockApimClient.getClient();
+    apimClient.user.get.mockImplementationOnce(() =>
+      Promise.resolve(mockApimDelegateUserReponse)
+    );
+    const mockClientPool = await mockClient.connect();
+    const res = await storeDocumentApimToDatabase(
+      (apimClient as unknown) as ApiManagementClient,
+      mockConfig as any,
+      mockClientPool,
+      mockDocuments[0] as any
+    )();
+    console.log(res);
     expect(isRight(res)).toBe(true);
     if (isRight(res)) {
       expect(res.right).toHaveProperty("command", "INSERT");
@@ -214,17 +233,3 @@ describe("storeDocumentApimToDatabase", () => {
     }
   });
 });
-
-/* describe("parseOwnerIdFullPath", () => {
-  it("should parse valid owner Id full path", async () => {
-    const fullPath = "" as NonEmptyString;
-    const expected = "";
-    const parsed = parseOwnerIdFullPath(fullPath);
-    if (O.isSome(parsed)) {
-      expect(parsed.value).toEqual(expected);
-    } else {
-      fail("Expected some value, received none");
-    }
-  });
-});
-*/

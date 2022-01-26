@@ -1,3 +1,4 @@
+import * as t from "io-ts";
 import * as O from "fp-ts/lib/Option";
 import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
 import { createUpsertSql, parseOwnerIdFullPath } from "../handler";
@@ -6,7 +7,9 @@ import { MigrationRowDataTable } from "../../models/Domain";
 import {
   ApimDelegateUserResponse,
   ApimOrganizationUserResponse,
-  ApimUserResponse
+  ApimUserResponse,
+  EnrichedApimUserResponse,
+  RawApimUserResponse
 } from "../../models/DomainApimResponse";
 import { isRight } from "fp-ts/lib/Either";
 
@@ -40,35 +43,75 @@ describe("parseOwnerIdFullPath", () => {
 });
 
 describe("ApimOrganizationUserResponse", () => {
-  it("should validate", () => {
+  it("XXXXXX", () => {
     const value = {
       email: "email@test.com",
       firstName: "TestNome",
       id: "123",
       lastName: "TestCognome",
-      kind: "organization"
+      note: "01234567891"
     };
-    const res = ApimOrganizationUserResponse.decode(value);
-    expect(isRight(res)).toBe(true);
+
+    const decoded = ApimOrganizationUserResponse.decode(value);
+    const decoded2 = ApimDelegateUserResponse.decode(value);
+    const decoded3 = ApimUserResponse.decode(value);
+    /*  RawApimUserResponse.pipe(EnrichedApimUserResponse).decode(
+      value
+    ); */
+
+    console.log("--->D1", decoded);
+    console.log("--->D2", decoded2);
+    console.log("--->D3", decoded3);
+  });
+
+  it("should validate a valid Organization User", () => {
+    const value = {
+      email: "email@test.com",
+      firstName: "TestNome",
+      id: "123",
+      lastName: "TestCognome",
+      kind: "organization",
+      note: "01234567891"
+    };
+    /*  const res = ApimOrganizationUserResponse.decode(value);
+    expect(isRight(res)).toBe(true); */
+    // const res2 = ApimDelegateUserResponse.decode(value);
+    // expect(isRight(res2)).toBe(false);
+    // const res3 = ApimDelegateUserResponse.is(value);
+    // expect(res3).toBe(false);
+    // const res4 = ApimOrganizationUserResponse.is(value);
+    // expect(res4).toBe(true);
   });
 });
 
 describe("ApimDelegateUserResponse", () => {
-  it("should validate", () => {
+  it("should validate a valid Delegate User", () => {
     const value = {
       email: "email@test.com",
       firstName: "TestNome",
       id: "123",
-      lastName: "TestCognome",
-      kind: "delegate"
+      lastName: "TestCognome"
     };
     const res = ApimDelegateUserResponse.decode(value);
     expect(isRight(res)).toBe(true);
   });
+  it("sould validate a Delegate with is", () => {
+    const apimUser = {
+      id:
+        "/subscriptions/subid/resourceGroups/resourceGroupName/providers/Microsoft.ApiManagement/service/apimServiceName/users/01EYNPZXQJF9A2DBTH5GYB951V",
+      firstName: "Nome",
+      lastName: "Cognome",
+      email: "email@test.com",
+      note: ""
+    };
+    const res = ApimDelegateUserResponse.is(apimUser);
+    console.log(res);
+    expect(res).toBe(true);
+  });
 });
 
 describe("ApimUserResponse", () => {
-  it("should validate a delegate", () => {
+  it("should validate a valid User", () => {
     const value = {
       email: "email@test.com",
       firstName: "TestNome",
