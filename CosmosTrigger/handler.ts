@@ -8,7 +8,6 @@ import * as dotenv from "dotenv";
 import * as RA from "fp-ts/lib/ReadonlyArray";
 import * as E from "fp-ts/lib/Either";
 import * as TE from "fp-ts/lib/TaskEither";
-import * as T from "fp-ts/lib/Task";
 import * as O from "fp-ts/lib/Option";
 import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
 import {
@@ -158,9 +157,8 @@ export const queryDataTable = (
 export const createUpsertSql = (dbConfig: IDecodableConfigPostgreSQL) => (
   data: MigrationRowDataTable,
   excludeStatus: "PENDING" = "PENDING"
-): NonEmptyString => {
-  console.log("QUI");
-  const r = `INSERT INTO "${dbConfig.DB_SCHEMA}"."${dbConfig.DB_TABLE}"(
+): NonEmptyString =>
+  `INSERT INTO "${dbConfig.DB_SCHEMA}"."${dbConfig.DB_TABLE}"(
         "subscriptionId", "organizationFiscalCode", "sourceId", "sourceName",
         "sourceSurname", "sourceEmail")
         VALUES ('${data.subscriptionId}', '${data.organizationFiscalCode}', '${data.sourceId}', '${data.sourceName}', '${data.sourceSurname}', '${data.sourceEmail}')
@@ -169,9 +167,6 @@ export const createUpsertSql = (dbConfig: IDecodableConfigPostgreSQL) => (
             SET "organizationFiscalCode" = "excluded"."organizationFiscalCode"
             WHERE "ServicesMigration"."Services"."status" <> '${excludeStatus}'
     ` as NonEmptyString;
-  console.log(r);
-  return r;
-};
 
 export const log = (d: unknown): void => {
   throw new Error(`To be implement ${d}`);
@@ -193,18 +188,10 @@ export const storeDocumentApimToDatabase = (
     retrievedDocument.subscriptionId,
     // given the subscription, retrieve it's apim object
     id => getApimOwnerBySubscriptionId(config, apimClient, id),
-    T.map(i => {
-      console.log("STEP 1", i);
-      return i;
-    }),
     TE.chainW(apimSubscription =>
       pipe(
         // given the subscription apim object, retrieve its owner's detail
         getApimUserBySubscription(config, apimClient, apimSubscription),
-        T.map(i => {
-          console.log("STEP 2", i);
-          return i;
-        }),
         // We only consider subscription owned by a Delegate,
         //   otherwise we just ignore the document
         // This because migration are meant to work only from a Delegate to its Organization,
@@ -216,10 +203,6 @@ export const storeDocumentApimToDatabase = (
                 { apimSubscription, apimUser },
 
                 apimData => mapDataToTableRow(retrievedDocument, apimData),
-                i => {
-                  console.log("STEP 3", i);
-                  return i;
-                },
                 createUpsertSql(config),
                 sql => queryDataTable(pool, sql)
               )

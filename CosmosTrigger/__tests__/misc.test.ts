@@ -84,7 +84,6 @@ describe("ApimDelegateUserResponse", () => {
       note: ""
     };
     const res = ApimDelegateUserResponse.is(apimUser);
-    console.log(res);
     expect(res).toBe(true);
   });
 });

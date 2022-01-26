@@ -207,7 +207,6 @@ describe("storeDocumentApimToDatabase", () => {
       mockClientPool,
       mockDocuments[0] as any
     )();
-    console.log(res);
     expect(isRight(res)).toBe(true);
     if (isRight(res)) {
       expect(res.right).toBe(undefined);
@@ -225,7 +224,6 @@ describe("storeDocumentApimToDatabase", () => {
       mockClientPool,
       mockDocuments[0] as any
     )();
-    console.log(res);
     expect(isRight(res)).toBe(true);
     if (isRight(res)) {
       expect(res.right).toHaveProperty("command", "INSERT");
