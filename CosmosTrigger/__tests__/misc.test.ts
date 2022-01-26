@@ -43,27 +43,6 @@ describe("parseOwnerIdFullPath", () => {
 });
 
 describe("ApimOrganizationUserResponse", () => {
-  it("XXXXXX", () => {
-    const value = {
-      email: "email@test.com",
-      firstName: "TestNome",
-      id: "123",
-      lastName: "TestCognome",
-      note: "01234567891"
-    };
-
-    const decoded = ApimOrganizationUserResponse.decode(value);
-    const decoded2 = ApimDelegateUserResponse.decode(value);
-    const decoded3 = ApimUserResponse.decode(value);
-    /*  RawApimUserResponse.pipe(EnrichedApimUserResponse).decode(
-      value
-    ); */
-
-    console.log("--->D1", decoded);
-    console.log("--->D2", decoded2);
-    console.log("--->D3", decoded3);
-  });
-
   it("should validate a valid Organization User", () => {
     const value = {
       email: "email@test.com",
