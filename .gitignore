@@ -105,3 +105,7 @@ dist
 
 # Generated files
 generated
+
+# Local files
+.env
+local.settings.json
