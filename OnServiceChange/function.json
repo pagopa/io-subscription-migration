@@ -13,5 +13,5 @@
       "startFromBeginning": true
     }
   ],
-  "scriptFile": "../dist/CosmosTrigger/index.js"
+  "scriptFile": "../dist/OnServiceChange/index.js"
 }
