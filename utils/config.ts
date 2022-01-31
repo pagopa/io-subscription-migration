@@ -17,11 +17,11 @@ import { withDefault } from "@pagopa/ts-commons/lib/types";
 // global app configuration
 export type IDecodableConfig = t.TypeOf<typeof IDecodableConfig>;
 export const IDecodableConfig = t.interface({
-  COSMOSDB_COLLECTION: NonEmptyString,
   COSMOSDB_CONNECTIONSTRING: NonEmptyString,
   COSMOSDB_KEY: NonEmptyString,
-  COSMOSDB_LEASE_COLLECTION: NonEmptyString,
   COSMOSDB_NAME: NonEmptyString,
+  COSMOSDB_SERVICE_COLLECTION: NonEmptyString,
+  COSMOSDB_SERVICE_LEASE_COLLECTION: NonEmptyString,
   COSMOSDB_URI: NonEmptyString,
   QueueStorageConnection: NonEmptyString,
   isProduction: withDefault(t.boolean, false)
