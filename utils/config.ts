@@ -12,21 +12,51 @@ import { pipe } from "fp-ts/lib/function";
 
 import { readableReport } from "@pagopa/ts-commons/lib/reporters";
 import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
+import { withDefault } from "@pagopa/ts-commons/lib/types";
 
 // global app configuration
-export type IConfig = t.TypeOf<typeof IConfig>;
-// eslint-disable-next-line @typescript-eslint/ban-types
-export const IConfig = t.interface({
-  AzureWebJobsStorage: NonEmptyString,
-
+export type IDecodableConfig = t.TypeOf<typeof IDecodableConfig>;
+export const IDecodableConfig = t.interface({
+  COSMOSDB_COLLECTION: NonEmptyString,
+  COSMOSDB_CONNECTIONSTRING: NonEmptyString,
   COSMOSDB_KEY: NonEmptyString,
+  COSMOSDB_LEASE_COLLECTION: NonEmptyString,
   COSMOSDB_NAME: NonEmptyString,
   COSMOSDB_URI: NonEmptyString,
-
   QueueStorageConnection: NonEmptyString,
-
-  isProduction: t.boolean
+  isProduction: withDefault(t.boolean, false)
 });
+
+export type IDecodableConfigAPIM = t.TypeOf<typeof IDecodableConfigAPIM>;
+export const IDecodableConfigAPIM = t.interface({
+  APIM_CLIENT_ID: NonEmptyString,
+  APIM_RESOURCE_GROUP: NonEmptyString,
+  APIM_SECRET: NonEmptyString,
+  APIM_SERVICE_NAME: NonEmptyString,
+  APIM_SUBSCRIPTION_ID: NonEmptyString,
+  APIM_TENANT_ID: NonEmptyString
+});
+
+export type IDecodableConfigPostgreSQL = t.TypeOf<
+  typeof IDecodableConfigPostgreSQL
+>;
+export const IDecodableConfigPostgreSQL = t.interface({
+  DB_HOST: NonEmptyString,
+  DB_IDLE_TIMEOUT: withDefault(t.number, 30000),
+  DB_NAME: NonEmptyString,
+  DB_PASSWORD: NonEmptyString,
+  DB_PORT: NonEmptyString,
+  DB_SCHEMA: NonEmptyString,
+  DB_TABLE: NonEmptyString,
+  DB_USER: NonEmptyString
+});
+
+export type IConfig = t.TypeOf<typeof IConfig>;
+export const IConfig = t.intersection([
+  IDecodableConfig,
+  IDecodableConfigAPIM,
+  IDecodableConfigPostgreSQL
+]);
 
 export const envConfig = {
   ...process.env,

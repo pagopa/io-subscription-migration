@@ -1,0 +1,17 @@
+{
+  "bindings": [
+    {
+      "authLevel": "function",
+      "type": "cosmosDBTrigger",
+      "name": "documents",
+      "direction": "in",
+      "connectionStringSetting": "COSMOSDB_CONNECTIONSTRING",
+      "databaseName": "%COSMOSDB_NAME%",
+      "collectionName": "%COSMOSDB_COLLECTION%",
+      "leaseCollectionName": "%COSMOSDB_LEASE_COLLECTION%",
+      "createLeaseCollectionIfNotExists": true,
+      "startFromBeginning": true
+    }
+  ],
+  "scriptFile": "../dist/CosmosTrigger/index.js"
+}
