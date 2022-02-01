@@ -4,7 +4,6 @@ import { ApiManagementClient } from "@azure/arm-apimanagement";
 import { Pool, PoolClient, QueryResult } from "pg";
 import { toError } from "fp-ts/lib/Either";
 import { flow, pipe } from "fp-ts/lib/function";
-import * as dotenv from "dotenv";
 import * as RA from "fp-ts/lib/ReadonlyArray";
 import * as E from "fp-ts/lib/Either";
 import * as TE from "fp-ts/lib/TaskEither";
@@ -29,8 +28,6 @@ import {
   IDecodableConfigPostgreSQL
 } from "../utils/config";
 import { MigrationRowDataTable } from "../models/Domain";
-
-dotenv.config();
 
 export const validateDocument = (
   document: unknown
