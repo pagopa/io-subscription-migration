@@ -10,6 +10,7 @@ import * as TE from "fp-ts/lib/TaskEither";
 import * as T from "fp-ts/lib/Task";
 import * as O from "fp-ts/lib/Option";
 import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
+import { RetrievedService } from "@pagopa/io-functions-commons/dist/src/models/service";
 import {
   IDbError,
   IApimSubError,
@@ -21,7 +22,6 @@ import {
   ApimSubscriptionResponse,
   ApimUserResponse
 } from "../models/DomainApimResponse";
-import { RetrievedServiceDocument } from "../models/RetrievedService";
 import {
   IConfig,
   IDecodableConfigAPIM,
@@ -31,9 +31,9 @@ import { MigrationRowDataTable } from "../models/Domain";
 
 export const validateDocument = (
   document: unknown
-): E.Either<string, RetrievedServiceDocument> =>
+): E.Either<string, RetrievedService> =>
   pipe(
-    RetrievedServiceDocument.decode(document),
+    RetrievedService.decode(document),
     E.mapLeft(() => `Errore su ${document}`)
   );
 
@@ -131,7 +131,7 @@ export const getApimUserBySubscription = (
   );
 
 export const mapDataToTableRow = (
-  retrievedDocument: RetrievedServiceDocument,
+  retrievedDocument: RetrievedService,
   apimData: {
     readonly apimUser: ApimDelegateUserResponse;
     readonly apimSubscription: ApimSubscriptionResponse;
@@ -188,7 +188,7 @@ export const storeDocumentApimToDatabase = (
   apimClient: ApiManagementClient,
   config: IConfig,
   pool: PoolClient,
-  retrievedDocument: RetrievedServiceDocument
+  retrievedDocument: RetrievedService
 ): TE.TaskEither<DomainError, QueryResult | void> =>
   pipe(
     retrievedDocument.serviceId,

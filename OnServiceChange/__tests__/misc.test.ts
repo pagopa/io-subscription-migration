@@ -1,4 +1,4 @@
-import * as t from "io-ts";
+import * as E from "fp-ts/lib/Either";
 import * as O from "fp-ts/lib/Option";
 import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
 import {
@@ -14,7 +14,6 @@ import {
   ApimUserResponse
 } from "../../models/DomainApimResponse";
 import { isRight } from "fp-ts/lib/Either";
-import { RetrievedServiceDocument } from "../../models/RetrievedService";
 
 describe("validate Document", () => {
   it("should validate a valid document", () => {
@@ -31,8 +30,7 @@ describe("validate Document", () => {
       _ts: 1643286367
     };
     const res = validateDocument(doc);
-    console.log(res);
-    expect(1).toBe(1);
+    expect(E.isRight(res)).toBe(true);
   });
 });
 describe("parseOwnerIdFullPath", () => {

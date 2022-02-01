@@ -17,6 +17,8 @@ import {
 } from "../../models/DomainApimResponse";
 import { ApiManagementClient } from "@azure/arm-apimanagement";
 import { QueryResult } from "pg";
+import { RetrievedService } from "@pagopa/io-functions-commons/dist/src/models/service";
+import { NonNegativeInteger } from "@pagopa/ts-commons/lib/numbers";
 
 const mockSubscriptionId = "01EYNQ08CFNATVH1YBN8D14Y8S" as NonEmptyString;
 const mockOwnerId = "/subscriptions/subid/resourceGroups/resourceGroupName/providers/Microsoft.ApiManagement/service/apimServiceName/users/01EYNPZXQJF9A2DBTH5GYB951V" as NonEmptyString;
@@ -24,8 +26,8 @@ const mockOrganizationFiscalCode = "01234567891" as OrganizationFiscalCode;
 const mockRetrieveDocument = {
   serviceId: mockSubscriptionId,
   organizationFiscalCode: mockOrganizationFiscalCode,
-  version: 0
-};
+  version: 0 as NonNegativeInteger
+} as RetrievedService;
 const mockApimSubscriptionResponse = {
   subscriptionId: mockSubscriptionId,
   ownerId: mockOwnerId
