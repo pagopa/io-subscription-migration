@@ -7,8 +7,8 @@
       "direction": "in",
       "connectionStringSetting": "COSMOSDB_CONNECTIONSTRING",
       "databaseName": "%COSMOSDB_NAME%",
-      "collectionName": "%COSMOSDB_SERVICE_COLLECTION%",
-      "leaseCollectionName": "%COSMOSDB_SERVICE_LEASE_COLLECTION%",
+      "collectionName": "%COSMOSDB_SERVICES_COLLECTION%",
+      "leaseCollectionName": "%COSMOSDB_SERVICES_LEASE_COLLECTION%",
       "createLeaseCollectionIfNotExists": true,
       "startFromBeginning": true
     }

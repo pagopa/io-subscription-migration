@@ -23,8 +23,8 @@ export const IDecodableConfigCosmosDB = t.interface({
   COSMOSDB_CONNECTIONSTRING: NonEmptyString,
   COSMOSDB_KEY: NonEmptyString,
   COSMOSDB_NAME: NonEmptyString,
-  COSMOSDB_SERVICE_COLLECTION: NonEmptyString,
-  COSMOSDB_SERVICE_LEASE_COLLECTION: NonEmptyString,
+  COSMOSDB_SERVICES_COLLECTION: NonEmptyString,
+  COSMOSDB_SERVICES_LEASE_COLLECTION: NonEmptyString,
   COSMOSDB_URI: NonEmptyString
 });
 
@@ -62,7 +62,8 @@ export const IConfig = t.intersection([
   IDecodableConfigAPIM,
   IDecodableConfigPostgreSQL,
   t.interface({
-    QueueStorageConnection: NonEmptyString,
+    // default function app storage connection
+    AzureWebJobsStorage: NonEmptyString,
     isProduction: t.boolean
   })
 ]);
