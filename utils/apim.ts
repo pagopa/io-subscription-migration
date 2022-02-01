@@ -1,9 +1,5 @@
 import { ApiManagementClient } from "@azure/arm-apimanagement";
-// import * as msRestNodeAuth from "@azure/ms-rest-nodeauth";
-// import { toError } from "fp-ts/lib/Either";
-// import { pipe } from "fp-ts/lib/function";
-// import * as TE from "fp-ts/lib/TaskEither";
-import { DefaultAzureCredential } from "@azure/identity";
+import { AzureAuthorityHosts, ClientSecretCredential } from "@azure/identity";
 
 export interface IServicePrincipalCreds {
   readonly clientId: string;
@@ -21,7 +17,13 @@ export function getApiClient(
   servicePrincipalCreds: IServicePrincipalCreds,
   subscriptionId: string
 ): ApiManagementClient {
-  const credential = new DefaultAzureCredential();
-
+  const credential = new ClientSecretCredential(
+    servicePrincipalCreds.tenantId,
+    servicePrincipalCreds.clientId,
+    servicePrincipalCreds.secret,
+    {
+      authorityHost: AzureAuthorityHosts.AzurePublicCloud
+    }
+  );
   return new ApiManagementClient(credential, subscriptionId);
 }

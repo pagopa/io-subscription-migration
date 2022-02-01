@@ -1,6 +1,9 @@
 import * as E from "fp-ts/lib/Either";
 import * as O from "fp-ts/lib/Option";
-import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
+import {
+  NonEmptyString,
+  OrganizationFiscalCode
+} from "@pagopa/ts-commons/lib/strings";
 import {
   createUpsertSql,
   parseOwnerIdFullPath,
@@ -14,22 +17,41 @@ import {
   ApimUserResponse
 } from "../../models/DomainApimResponse";
 import { isRight } from "fp-ts/lib/Either";
+import {
+  RetrievedService,
+  toAuthorizedCIDRs,
+  toAuthorizedRecipients
+} from "@pagopa/io-functions-commons/dist/src/models/service";
+import {
+  IWithinRangeIntegerTag,
+  NonNegativeInteger
+} from "@pagopa/ts-commons/lib/numbers";
 
 describe("validate Document", () => {
   it("should validate a valid document", () => {
-    const doc = {
-      serviceId: "01EYNQ0864HKYR1Q9PXPJ18W7G",
-      serviceName: "Lorenzo",
-      version: 0,
-      organizationFiscalCode: "00000000000",
-      id: "23550680-0707-46bb-9592-e433ee43bada",
-      _rid: "DBFFAKatTgwBAAAAAAAAAA==",
-      _self: "dbs/DBFFAA==/colls/DBFFAKatTgw=/docs/DBFFAKatTgwBAAAAAAAAAA==/",
-      _etag: '"00000000-0000-0000-1379-0f69200201d8"',
-      _attachments: "attachments/",
-      _ts: 1643286367
+    const doc: RetrievedService = {
+      authorizedCIDRs: toAuthorizedCIDRs([]),
+      authorizedRecipients: toAuthorizedRecipients([]),
+      departmentName: "MyDeptName" as NonEmptyString,
+      isVisible: true,
+      maxAllowedPaymentAmount: 0 as
+        | 9999999999
+        | (number & IWithinRangeIntegerTag<0, 9999999999>),
+      organizationFiscalCode: "00000000000" as OrganizationFiscalCode,
+      organizationName: "MyOrgName" as NonEmptyString,
+      requireSecureChannels: false,
+      serviceId: "MySubscriptionId" as NonEmptyString,
+      serviceName: "MyServiceName" as NonEmptyString,
+      id: "123" as NonEmptyString,
+      version: 1 as NonNegativeInteger,
+      kind: "IRetrievedService",
+      _rid: "rid",
+      _ts: 1,
+      _self: "self",
+      _etag: "etag"
     };
     const res = validateDocument(doc);
+    console.log(JSON.stringify(res, null, 2));
     expect(E.isRight(res)).toBe(true);
   });
 });
