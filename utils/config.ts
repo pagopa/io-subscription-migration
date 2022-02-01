@@ -62,7 +62,8 @@ export const IConfig = t.intersection([
   IDecodableConfigAPIM,
   IDecodableConfigPostgreSQL,
   t.interface({
-    QueueStorageConnection: NonEmptyString,
+    // default function app storage connection
+    AzureWebJobsStorage: NonEmptyString,
     isProduction: t.boolean
   })
 ]);
