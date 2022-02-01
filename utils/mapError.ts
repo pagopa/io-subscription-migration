@@ -6,7 +6,9 @@ export type ErrorApimResponse = ErrorResponse & {
   readonly statusCode?: number;
 };
 
-export const mapApimError = (errorResponse: ErrorApimResponse): IApimSubError =>
+export const mapApimSubError = (
+  errorResponse: ErrorApimResponse
+): IApimSubError =>
   pipe(
     errorResponse,
     e => {

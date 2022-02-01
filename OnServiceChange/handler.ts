@@ -16,7 +16,8 @@ import {
   IApimSubError,
   IApimUserError,
   DomainError,
-  toApimSubError
+  toApimSubError,
+  toApimUserError
 } from "../models/DomainErrors";
 import {
   ApimDelegateUserResponse,
@@ -29,7 +30,7 @@ import {
   IDecodableConfigPostgreSQL
 } from "../utils/config";
 import { MigrationRowDataTable } from "../models/Domain";
-import { ErrorApimResponse, mapApimError } from "../utils/mapError";
+import { ErrorApimResponse, mapApimSubError } from "../utils/mapError";
 
 export const validateDocument = (
   document: unknown
@@ -76,16 +77,16 @@ export const getApimOwnerBySubscriptionId = (
           apimConfig.APIM_SERVICE_NAME,
           subscriptionId
         ),
-      error => mapApimError(error as ErrorApimResponse)
+      error => mapApimSubError(error as ErrorApimResponse)
     ),
     TE.chain(subscriptionResponse =>
       pipe(
         subscriptionResponse.ownerId,
         NonEmptyString.decode,
-        E.mapLeft(_ => toApimSubError("Invalid Owner Id")),
+        E.mapLeft(_ => toApimSubError("Invalid Owner Id.")),
         E.map(parseOwnerIdFullPath),
         E.chainW(
-          E.fromOption(() => toApimSubError("Invalid Owner Id Full Path"))
+          E.fromOption(() => toApimSubError("Invalid Owner Id Full Path."))
         ),
         TE.fromEither
       )
@@ -109,18 +110,16 @@ export const getApimUserBySubscription = (
           config.APIM_SERVICE_NAME,
           apimSubscriptionResponse.ownerId
         ),
-      toError
+      () =>
+        toApimUserError(
+          "The provided subscription identifier is malformed or invalid or occur an Authetication Error."
+        )
     ),
-    TE.mapLeft(() => ({
-      kind: "apimusererror" as const /* TODO: add error detail */
-    })),
-    TE.chainW(
+    TE.chain(
       flow(
         ApimUserResponse.decode,
         TE.fromEither,
-        TE.mapLeft(() => ({
-          kind: "apimusererror" as const /* TODO: add error detail */
-        }))
+        TE.mapLeft(() => toApimUserError("Invalid Apim User Response Decode."))
       )
     )
   );
