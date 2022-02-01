@@ -139,7 +139,10 @@ describe("getApimOwnerBySubscriptionId", () => {
 
     expect(isRight(res)).toBe(false);
     if (isLeft(res)) {
-      expect(res.left).toEqual({ kind: "apimsuberror" });
+      expect(res.left).toEqual({
+        kind: "apimsuberror",
+        message: "APIM Generic error"
+      });
     }
   });
 });

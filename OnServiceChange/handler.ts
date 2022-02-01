@@ -15,7 +15,8 @@ import {
   IDbError,
   IApimSubError,
   IApimUserError,
-  DomainError
+  DomainError,
+  toApimSubError
 } from "../models/DomainErrors";
 import {
   ApimDelegateUserResponse,
@@ -28,6 +29,7 @@ import {
   IDecodableConfigPostgreSQL
 } from "../utils/config";
 import { MigrationRowDataTable } from "../models/Domain";
+import { ErrorApimResponse, mapApimError } from "../utils/mapError";
 
 export const validateDocument = (
   document: unknown
@@ -74,23 +76,16 @@ export const getApimOwnerBySubscriptionId = (
           apimConfig.APIM_SERVICE_NAME,
           subscriptionId
         ),
-      toError
+      error => mapApimError(error as ErrorApimResponse)
     ),
-    TE.mapLeft(() => ({
-      kind: "apimsuberror" as const
-    })),
     TE.chain(subscriptionResponse =>
       pipe(
         subscriptionResponse.ownerId,
         NonEmptyString.decode,
-        E.mapLeft(_ => ({
-          kind: "apimsuberror" as const /* TODO: add error detail */
-        })),
+        E.mapLeft(_ => toApimSubError("Invalid Owner Id")),
         E.map(parseOwnerIdFullPath),
         E.chainW(
-          E.fromOption(() => ({
-            kind: "apimsuberror" as const /* TODO: add error detail */
-          }))
+          E.fromOption(() => toApimSubError("Invalid Owner Id Full Path"))
         ),
         TE.fromEither
       )
