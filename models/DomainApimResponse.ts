@@ -37,25 +37,6 @@ export const RawApimUserResponse = t.interface({
   note: withDefault(t.string, "")
 });
 
-export type EnrichedApimUserResponse = t.TypeOf<
-  typeof EnrichedApimUserResponse
->;
-export const EnrichedApimUserResponse = new t.Type<
-  RawApimUserResponse & { readonly kind: "organization" | "delegate" },
-  RawApimUserResponse,
-  RawApimUserResponse
->(
-  "BaseApimUserResponse",
-  (u): u is RawApimUserResponse & { readonly kind: "organization" } =>
-    RawApimUserResponse.is(u) && isOrganizationUser(u),
-  u =>
-    t.success({
-      ...u,
-      kind: isOrganizationUser(u) ? "organization" : "delegate"
-    }),
-  RawApimUserResponse.encode
-);
-
 export type ApimDelegateUserResponse = t.TypeOf<
   typeof ApimDelegateUserResponse
 >;
