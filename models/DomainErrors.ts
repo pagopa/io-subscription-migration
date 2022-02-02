@@ -1,5 +1,6 @@
 export interface IDbError {
   readonly kind: "dberror";
+  readonly message?: string;
 }
 
 export interface IApimSubError {
@@ -17,13 +18,14 @@ export const toApimSubError = (message: string): IApimSubError => ({
   message
 });
 
-export const toApimUserError = (message: string): IApimUserError => {
-  // eslint-disable-next-line no-console
-  console.log("MESSAge", message);
-  return {
-    kind: "apimusererror",
-    message
-  };
-};
+export const toApimUserError = (message: string): IApimUserError => ({
+  kind: "apimusererror",
+  message
+});
+
+export const toPostgreSQLError = (message: string): IDbError => ({
+  kind: "dberror",
+  message
+});
 
 export type DomainError = IDbError | IApimSubError | IApimUserError;

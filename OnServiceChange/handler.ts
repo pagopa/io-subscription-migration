@@ -2,7 +2,6 @@
 import { Context } from "@azure/functions";
 import { ApiManagementClient } from "@azure/arm-apimanagement";
 import { Pool, PoolClient, QueryResult } from "pg";
-import { toError } from "fp-ts/lib/Either";
 import { flow, pipe } from "fp-ts/lib/function";
 import * as RA from "fp-ts/lib/ReadonlyArray";
 import * as E from "fp-ts/lib/Either";
@@ -30,7 +29,12 @@ import {
   IDecodableConfigPostgreSQL
 } from "../utils/config";
 import { MigrationRowDataTable } from "../models/Domain";
-import { ErrorApimResponse, mapApimSubError } from "../utils/mapError";
+import {
+  ErrorApimResponse,
+  ErrorPostgreSQL,
+  mapApimSubError,
+  mapPostgreSQLError
+} from "../utils/mapError";
 
 export const validateDocument = (
   document: unknown
@@ -147,8 +151,10 @@ export const queryDataTable = (
   query: string
 ): TE.TaskEither<IDbError, QueryResult> =>
   pipe(
-    TE.tryCatch(() => dbClient.query(query), toError),
-    TE.mapLeft(() => ({ kind: "dberror" as const }))
+    TE.tryCatch(
+      () => dbClient.query(query),
+      error => mapPostgreSQLError(error as ErrorPostgreSQL)
+    )
   );
 
 export const createUpsertSql = (dbConfig: IDecodableConfigPostgreSQL) => (

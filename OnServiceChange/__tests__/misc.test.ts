@@ -51,7 +51,6 @@ describe("validate Document", () => {
       _etag: "etag"
     };
     const res = validateDocument(doc);
-    console.log(JSON.stringify(res, null, 2));
     expect(E.isRight(res)).toBe(true);
   });
 });
