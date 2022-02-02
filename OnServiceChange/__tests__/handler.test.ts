@@ -11,7 +11,7 @@ import {
   NonEmptyString,
   OrganizationFiscalCode
 } from "@pagopa/ts-commons/lib/strings";
-import { getConfigOrThrow, IDecodableConfigAPIM } from "../../utils/config";
+import { IDecodableConfigAPIM } from "../../utils/config";
 import {
   ApimDelegateUserResponse,
   ApimSubscriptionResponse
@@ -21,8 +21,8 @@ import { QueryResult } from "pg";
 import { RetrievedService } from "@pagopa/io-functions-commons/dist/src/models/service";
 import { NonNegativeInteger } from "@pagopa/ts-commons/lib/numbers";
 
-const mockSubscriptionId = "01EYNQ08CFNATVH1YBN8D14Y8S" as NonEmptyString;
-const mockOwnerId = "/subscriptions/subid/resourceGroups/resourceGroupName/providers/Microsoft.ApiManagement/service/apimServiceName/users/01EYNPZXQJF9A2DBTH5GYB951V" as NonEmptyString;
+const mockSubscriptionId = "00000000000000000000000000" as NonEmptyString;
+const mockOwnerId = "/subscriptions/subid/resourceGroups/resourceGroupName/providers/Microsoft.ApiManagement/service/apimServiceName/users/00000000000000000000000000" as NonEmptyString;
 const mockOrganizationFiscalCode = "01234567891" as OrganizationFiscalCode;
 const mockRetrieveDocument = {
   serviceId: mockSubscriptionId,
@@ -86,25 +86,21 @@ const mockClient = {
   )
 };
 
-const mockPool = {
-  query: jest.fn().mockImplementation(() => Promise.resolve(1))
-};
-
 const mockDocuments = [
   {
-    subscriptionId: "01FG981SCZVVDT5E7DPZ6Z2ZR7" as NonEmptyString,
+    subscriptionId: "00000000000000000000000000" as NonEmptyString,
     organizationFiscalCode: "11111111111" as OrganizationFiscalCode,
-    serviceName: "Servizi scolastici 2!" as NonEmptyString
+    serviceName: "Service Test 1 " as NonEmptyString
   },
   {
-    subscriptionId: "01EYNQ08CFNATVH1YBN8D14Y8S" as NonEmptyString,
-    organizationFiscalCode: "01234567891" as OrganizationFiscalCode,
-    serviceName: "Lorenzo Test" as NonEmptyString
+    subscriptionId: "00000000000000000000000001" as NonEmptyString,
+    organizationFiscalCode: "00000000000" as OrganizationFiscalCode,
+    serviceName: "Service Test 2.1" as NonEmptyString
   },
   {
-    subscriptionI: "01EYNQ08CFNATVH1YBN8D14Y8S" as NonEmptyString,
-    organizationFiscalCode: "01234567891" as OrganizationFiscalCode,
-    serviceName: "Lorenzo Test" as NonEmptyString
+    subscriptionI: "00000000000000000000000002" as NonEmptyString,
+    organizationFiscalCode: "00000000000" as OrganizationFiscalCode,
+    serviceName: "Service Test 2.2" as NonEmptyString
   }
 ];
 
@@ -162,13 +158,6 @@ describe("getApimUserBySubscription", () => {
       mockApimSubscriptionResponse
     )();
     expect(isRight(res)).toBe(true);
-    if (isRight(res)) {
-      expect(res.right).toHaveProperty("id");
-      expect(res.right).toHaveProperty("firstName");
-      expect(res.right).toHaveProperty("lastName");
-      expect(res.right).toHaveProperty("email");
-      expect(res.right).toHaveProperty("kind", "organization");
-    }
   });
   it("should have valid properties for Delegate", async () => {
     const apimClient = mockApimClient.getClient();
@@ -181,13 +170,6 @@ describe("getApimUserBySubscription", () => {
       mockApimSubscriptionResponse
     )();
     expect(isRight(res)).toBe(true);
-    if (isRight(res)) {
-      expect(res.right).toHaveProperty("id");
-      expect(res.right).toHaveProperty("firstName");
-      expect(res.right).toHaveProperty("lastName");
-      expect(res.right).toHaveProperty("email");
-      expect(res.right).toHaveProperty("kind", "delegate");
-    }
   });
 });
 
@@ -236,8 +218,6 @@ describe("storeDocumentApimToDatabase", () => {
     }
   });
 });
-
-import clientDB from "../../utils/dbconnector";
 
 describe("queryDataTable", () => {
   it("should return duplicate Primary Key", async () => {

@@ -240,16 +240,11 @@ export const createServiceChangeHandler = (
         flow(
           document =>
             storeDocumentApimToDatabase(apimClient, config, pool, document),
-          TE.fold(
-            err => {
-              context.log(`${logPrefix}|Error ${err.kind}.`);
-              return T.of(void 0);
-            },
-            value => {
-              context.log(`${logPrefix}|Process ${value} document.`);
-              return T.of(void 0);
-            }
-          )
+          TE.mapLeft(err => context.log(`${logPrefix}|Error ${err.kind}.`)),
+          TE.map(value =>
+            context.log(`${logPrefix}|Process ${value} document.`)
+          ),
+          TE.toUnion
         )
       )
     ),
