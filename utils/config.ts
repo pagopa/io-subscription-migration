@@ -12,21 +12,61 @@ import { pipe } from "fp-ts/lib/function";
 
 import { readableReport } from "@pagopa/ts-commons/lib/reporters";
 import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
+import { withDefault } from "@pagopa/ts-commons/lib/types";
 
-// global app configuration
-export type IConfig = t.TypeOf<typeof IConfig>;
-// eslint-disable-next-line @typescript-eslint/ban-types
-export const IConfig = t.interface({
-  AzureWebJobsStorage: NonEmptyString,
-
+// Environment configuration to connect to IO CosmosDB
+//   needed in order to fetch changes on Services collection
+export type IDecodableConfigCosmosDB = t.TypeOf<
+  typeof IDecodableConfigCosmosDB
+>;
+export const IDecodableConfigCosmosDB = t.interface({
+  COSMOSDB_CONNECTIONSTRING: NonEmptyString,
   COSMOSDB_KEY: NonEmptyString,
   COSMOSDB_NAME: NonEmptyString,
-  COSMOSDB_URI: NonEmptyString,
-
-  QueueStorageConnection: NonEmptyString,
-
-  isProduction: t.boolean
+  COSMOSDB_SERVICES_COLLECTION: NonEmptyString,
+  COSMOSDB_SERVICES_LEASE_COLLECTION: NonEmptyString,
+  COSMOSDB_URI: NonEmptyString
 });
+
+// Environment configuration to connect to IO APIM instance
+//   needed in order to query API Subscription Keys
+export type IDecodableConfigAPIM = t.TypeOf<typeof IDecodableConfigAPIM>;
+export const IDecodableConfigAPIM = t.interface({
+  APIM_CLIENT_ID: NonEmptyString,
+  APIM_RESOURCE_GROUP: NonEmptyString,
+  APIM_SECRET: NonEmptyString,
+  APIM_SERVICE_NAME: NonEmptyString,
+  APIM_SUBSCRIPTION_ID: NonEmptyString,
+  APIM_TENANT_ID: NonEmptyString
+});
+
+// Environment configuration to connect to dedicate db instance
+//   needed in order to persist migration data
+export type IDecodableConfigPostgreSQL = t.TypeOf<
+  typeof IDecodableConfigPostgreSQL
+>;
+export const IDecodableConfigPostgreSQL = t.interface({
+  DB_HOST: NonEmptyString,
+  DB_IDLE_TIMEOUT: withDefault(t.number, 30000),
+  DB_NAME: NonEmptyString,
+  DB_PASSWORD: NonEmptyString,
+  DB_PORT: NonEmptyString,
+  DB_SCHEMA: NonEmptyString,
+  DB_TABLE: NonEmptyString,
+  DB_USER: NonEmptyString
+});
+
+export type IConfig = t.TypeOf<typeof IConfig>;
+export const IConfig = t.intersection([
+  IDecodableConfigCosmosDB,
+  IDecodableConfigAPIM,
+  IDecodableConfigPostgreSQL,
+  t.interface({
+    // default function app storage connection
+    AzureWebJobsStorage: NonEmptyString,
+    isProduction: t.boolean
+  })
+]);
 
 export const envConfig = {
   ...process.env,
