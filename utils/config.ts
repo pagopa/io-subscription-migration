@@ -13,6 +13,7 @@ import { pipe } from "fp-ts/lib/function";
 import { readableReport } from "@pagopa/ts-commons/lib/reporters";
 import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
 import { withDefault } from "@pagopa/ts-commons/lib/types";
+import { NumberFromString } from "@pagopa/ts-commons/lib/numbers";
 
 // Environment configuration to connect to IO CosmosDB
 //   needed in order to fetch changes on Services collection
@@ -47,7 +48,7 @@ export type IDecodableConfigPostgreSQL = t.TypeOf<
 >;
 export const IDecodableConfigPostgreSQL = t.interface({
   DB_HOST: NonEmptyString,
-  DB_IDLE_TIMEOUT: withDefault(t.number, 30000),
+  DB_IDLE_TIMEOUT: withDefault(NumberFromString, 30000),
   DB_NAME: NonEmptyString,
   DB_PASSWORD: NonEmptyString,
   DB_PORT: NonEmptyString,
