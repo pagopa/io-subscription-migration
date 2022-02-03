@@ -13,7 +13,10 @@ import { pipe } from "fp-ts/lib/function";
 import { readableReport } from "@pagopa/ts-commons/lib/reporters";
 import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
 import { withDefault } from "@pagopa/ts-commons/lib/types";
-import { NumberFromString } from "@pagopa/ts-commons/lib/numbers";
+import {
+  IntegerFromString,
+  NumberFromString
+} from "@pagopa/ts-commons/lib/numbers";
 
 // Environment configuration to connect to IO CosmosDB
 //   needed in order to fetch changes on Services collection
@@ -57,11 +60,23 @@ export const IDecodableConfigPostgreSQL = t.interface({
   DB_USER: NonEmptyString
 });
 
+// Environment configuration to connect to Application Insight instance
+//   needed in order to monitoring basic events and custom events
+export type IDecodableConfigAppInsight = t.TypeOf<
+  typeof IDecodableConfigAppInsight
+>;
+export const IDecodableConfigAppInsight = t.interface({
+  APPINSIGHTS_DISABLE: NonEmptyString,
+  APPINSIGHTS_INSTRUMENTATIONKEY: NonEmptyString,
+  APPINSIGHTS_SAMPLING_PERCENTAGE: withDefault(IntegerFromString, 5)
+});
+
 export type IConfig = t.TypeOf<typeof IConfig>;
 export const IConfig = t.intersection([
   IDecodableConfigCosmosDB,
   IDecodableConfigAPIM,
   IDecodableConfigPostgreSQL,
+  IDecodableConfigAppInsight,
   t.interface({
     // default function app storage connection
     AzureWebJobsStorage: NonEmptyString,

@@ -71,7 +71,9 @@ const mockGetClient = () => ({
 const mockApimClient = {
   getClient: mockGetClient
 };
-
+const mockTelemtryClient = {
+  trackEvent: jest.fn()
+};
 const mockQueryResult = {
   command: "INSERT",
   rowCount: 1
@@ -192,8 +194,8 @@ describe("storeDocumentApimToDatabase", () => {
       apimClient,
       mockConfig as any,
       mockClientPool,
-      mockDocuments[0] as any
-    )();
+      mockTelemtryClient as any
+    )(mockDocuments[0] as any)();
     expect(isRight(res)).toBe(true);
     if (isRight(res)) {
       expect(res.right).toBe(undefined);
@@ -209,8 +211,8 @@ describe("storeDocumentApimToDatabase", () => {
       (apimClient as unknown) as ApiManagementClient,
       mockConfig as any,
       mockClientPool,
-      mockDocuments[0] as any
-    )();
+      mockTelemtryClient as any
+    )(mockDocuments[0] as any)();
     expect(isRight(res)).toBe(true);
     if (isRight(res)) {
       expect(res.right).toHaveProperty("command", "INSERT");

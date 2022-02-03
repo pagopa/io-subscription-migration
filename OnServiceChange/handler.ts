@@ -35,6 +35,7 @@ import {
   mapApimSubError,
   mapPostgreSQLError
 } from "../utils/mapError";
+import { initTelemetryClient } from "../utils/appinsight";
 
 export const validateDocument = (
   document: unknown
@@ -178,16 +179,42 @@ export const log = (d: unknown): void => {
   throw new Error(`To be implement ${d}`);
 };
 
-export const onInvalidDocument = (d: unknown): T.Task<void> => {
+export const onInvalidDocument = (
+  d: unknown,
+  telemetryClient: ReturnType<typeof initTelemetryClient>
+): T.Task<void> => {
+  telemetryClient.trackEvent({
+    name: "selfcare.services.oninvaliddocument",
+    properties: {
+      document: d,
+      message: "Invalid document received"
+    },
+    tagOverrides: { samplingEnabled: "false" }
+  });
   throw new Error(`To be implement ${JSON.stringify(d, null, 2)}`);
 };
 
-export const onIgnoredDocument = (_d: unknown): void => void 0;
+export const onIgnoredDocument = (
+  d: unknown,
+  telemetryClient: ReturnType<typeof initTelemetryClient>
+): void => {
+  telemetryClient.trackEvent({
+    name: "selfcare.services.onignoredocument",
+    properties: {
+      document: d,
+      message: "Ignore document"
+    },
+    tagOverrides: { samplingEnabled: "false" }
+  });
+  return void 0;
+};
 
 export const storeDocumentApimToDatabase = (
   apimClient: ApiManagementClient,
   config: IConfig,
   pool: PoolClient,
+  telemetryClient: ReturnType<typeof initTelemetryClient>
+) => (
   retrievedDocument: RetrievedService
 ): TE.TaskEither<DomainError, QueryResult | void> =>
   pipe(
@@ -209,11 +236,28 @@ export const storeDocumentApimToDatabase = (
                 { apimSubscription, apimUser },
                 apimData => mapDataToTableRow(retrievedDocument, apimData),
                 createUpsertSql(config),
-                sql => queryDataTable(pool, sql)
+                sql => queryDataTable(pool, sql),
+                res => {
+                  telemetryClient.trackEvent({
+                    name: "selfcare.services.processeddocument",
+                    properties: {
+                      difference: Math.floor(
+                        // Cosmos store ts in second so we need to translate in milliseconds
+                        // eslint-disable-next-line no-underscore-dangle
+                        (new Date().getTime() - retrievedDocument._ts * 1000) /
+                          (1000 * 3600 * 24)
+                      ),
+                      message: "Processed document",
+                      serviceId: retrievedDocument.serviceId
+                    },
+                    tagOverrides: { samplingEnabled: "false" }
+                  });
+                  return res;
+                }
               )
             : // processing is successful, just ignore the document
               TE.of<DomainError, QueryResult | void>(
-                onIgnoredDocument(retrievedDocument)
+                onIgnoredDocument(retrievedDocument, telemetryClient)
               )
         )
       )
@@ -223,7 +267,8 @@ export const storeDocumentApimToDatabase = (
 export const createServiceChangeHandler = (
   config: IConfig,
   apimClient: ApiManagementClient,
-  client: Pool
+  client: Pool,
+  telemetryClient: ReturnType<typeof initTelemetryClient>
 ) => async (
   context: Context,
   documents: ReadonlyArray<unknown>
@@ -236,10 +281,15 @@ export const createServiceChangeHandler = (
     RA.map(validateDocument),
     RA.map(
       E.fold(
-        onInvalidDocument,
+        document => onInvalidDocument(document, telemetryClient),
         flow(
           document =>
-            storeDocumentApimToDatabase(apimClient, config, pool, document),
+            storeDocumentApimToDatabase(
+              apimClient,
+              config,
+              pool,
+              telemetryClient
+            )(document),
           TE.mapLeft(err => context.log(`${logPrefix}|Error ${err.kind}.`)),
           TE.map(value =>
             context.log(`${logPrefix}|Process ${value} document.`)
