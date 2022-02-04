@@ -36,6 +36,7 @@ import {
   mapPostgreSQLError
 } from "../utils/mapError";
 import { initTelemetryClient } from "../utils/appinsight";
+import { onIgnoredDocument, onInvalidDocument } from "../utils/tracking";
 
 export const validateDocument = (
   document: unknown
@@ -177,33 +178,6 @@ export const createUpsertSql = (dbConfig: IDecodableConfigPostgreSQL) => (
 
 export const log = (d: unknown): void => {
   throw new Error(`To be implement ${d}`);
-};
-
-export const onInvalidDocument = (
-  telemetryClient: ReturnType<typeof initTelemetryClient>
-) => (d: unknown): void => {
-  telemetryClient.trackEvent({
-    name: "selfcare.subsmigrations.services.oninvaliddocument",
-    properties: {
-      documentId: (d as RetrievedService).serviceId,
-      message: "Invalid document received"
-    },
-    tagOverrides: { samplingEnabled: "false" }
-  });
-};
-
-export const onIgnoredDocument = (
-  telemetryClient: ReturnType<typeof initTelemetryClient>
-) => (d: unknown): void => {
-  telemetryClient.trackEvent({
-    name: "selfcare.subsmigrations.services.onignoredocument",
-    properties: {
-      documentId: (d as RetrievedService).serviceId,
-      message: "Ignore document"
-    },
-    tagOverrides: { samplingEnabled: "false" }
-  });
-  return void 0;
 };
 
 export const storeDocumentApimToDatabase = (
