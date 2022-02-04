@@ -184,7 +184,7 @@ export const onInvalidDocument = (
   telemetryClient: ReturnType<typeof initTelemetryClient>
 ): T.Task<void> => {
   telemetryClient.trackEvent({
-    name: "selfcare.services.oninvaliddocument",
+    name: "selfcare.subsmigrations.services.oninvaliddocument",
     properties: {
       documentId: (d as RetrievedService).serviceId,
       message: "Invalid document received"
@@ -199,7 +199,7 @@ export const onIgnoredDocument = (
   telemetryClient: ReturnType<typeof initTelemetryClient>
 ): void => {
   telemetryClient.trackEvent({
-    name: "selfcare.services.onignoredocument",
+    name: "selfcare.subsmigrations.services.onignoredocument",
     properties: {
       documentId: (d as RetrievedService).serviceId,
       message: "Ignore document"
@@ -239,7 +239,7 @@ export const storeDocumentApimToDatabase = (
                 sql => queryDataTable(pool, sql),
                 res => {
                   telemetryClient.trackEvent({
-                    name: "selfcare.services.processeddocument",
+                    name: "selfcare.subsmigrations.services.processeddocument",
                     properties: {
                       difference: Math.floor(
                         // Cosmos store ts in second so we need to translate in milliseconds
