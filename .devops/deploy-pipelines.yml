@@ -137,10 +137,10 @@ stages:
         steps:  
         - checkout: none
         - script: |
-            hc_url = 'https://$(PRODUCTION_APP_NAME)-staging.azurewebsites.net/$(HEALTHCHECK_PATH)'
+            hc_url="https://$(PRODUCTION_APP_NAME)-staging.azurewebsites.net/$(HEALTHCHECK_PATH)"
             echo "Healthcheck url: $hc_url"
             # fails if response status is not 2xx
-            curl -f $hc_url
+            curl -f "$hc_url"
           displayName: 'Healthcheck'
 
   # Promote the staging instance to production
