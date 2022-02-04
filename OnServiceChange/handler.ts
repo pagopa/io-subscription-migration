@@ -2,7 +2,6 @@
 import { Context } from "@azure/functions";
 import { ApiManagementClient } from "@azure/arm-apimanagement";
 import { Pool, PoolClient, QueryResult } from "pg";
-import { toError } from "fp-ts/lib/Either";
 import { flow, pipe } from "fp-ts/lib/function";
 import * as RA from "fp-ts/lib/ReadonlyArray";
 import * as E from "fp-ts/lib/Either";
@@ -15,7 +14,9 @@ import {
   IDbError,
   IApimSubError,
   IApimUserError,
-  DomainError
+  DomainError,
+  toApimSubError,
+  toApimUserError
 } from "../models/DomainErrors";
 import {
   ApimDelegateUserResponse,
@@ -28,6 +29,12 @@ import {
   IDecodableConfigPostgreSQL
 } from "../utils/config";
 import { MigrationRowDataTable } from "../models/Domain";
+import {
+  ErrorApimResponse,
+  ErrorPostgreSQL,
+  mapApimSubError,
+  mapPostgreSQLError
+} from "../utils/mapError";
 
 export const validateDocument = (
   document: unknown
@@ -74,23 +81,16 @@ export const getApimOwnerBySubscriptionId = (
           apimConfig.APIM_SERVICE_NAME,
           subscriptionId
         ),
-      toError
+      error => mapApimSubError(error as ErrorApimResponse)
     ),
-    TE.mapLeft(() => ({
-      kind: "apimsuberror" as const
-    })),
     TE.chain(subscriptionResponse =>
       pipe(
         subscriptionResponse.ownerId,
         NonEmptyString.decode,
-        E.mapLeft(_ => ({
-          kind: "apimsuberror" as const /* TODO: add error detail */
-        })),
+        E.mapLeft(_ => toApimSubError("Invalid Owner Id.")),
         E.map(parseOwnerIdFullPath),
         E.chainW(
-          E.fromOption(() => ({
-            kind: "apimsuberror" as const /* TODO: add error detail */
-          }))
+          E.fromOption(() => toApimSubError("Invalid Owner Id Full Path."))
         ),
         TE.fromEither
       )
@@ -114,18 +114,16 @@ export const getApimUserBySubscription = (
           config.APIM_SERVICE_NAME,
           apimSubscriptionResponse.ownerId
         ),
-      toError
+      () =>
+        toApimUserError(
+          "The provided subscription identifier is malformed or invalid or occur an Authetication Error."
+        )
     ),
-    TE.mapLeft(() => ({
-      kind: "apimusererror" as const /* TODO: add error detail */
-    })),
-    TE.chainW(
+    TE.chain(
       flow(
         ApimUserResponse.decode,
         TE.fromEither,
-        TE.mapLeft(() => ({
-          kind: "apimusererror" as const /* TODO: add error detail */
-        }))
+        TE.mapLeft(() => toApimUserError("Invalid Apim User Response Decode."))
       )
     )
   );
@@ -153,8 +151,10 @@ export const queryDataTable = (
   query: string
 ): TE.TaskEither<IDbError, QueryResult> =>
   pipe(
-    TE.tryCatch(() => dbClient.query(query), toError),
-    TE.mapLeft(() => ({ kind: "dberror" as const }))
+    TE.tryCatch(
+      () => dbClient.query(query),
+      error => mapPostgreSQLError(error as ErrorPostgreSQL)
+    )
   );
 
 export const createUpsertSql = (dbConfig: IDecodableConfigPostgreSQL) => (

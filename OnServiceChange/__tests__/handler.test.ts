@@ -3,6 +3,7 @@ import {
   getApimOwnerBySubscriptionId,
   getApimUserBySubscription,
   mapDataToTableRow,
+  queryDataTable,
   storeDocumentApimToDatabase
 } from "../handler";
 import {
@@ -139,7 +140,10 @@ describe("getApimOwnerBySubscriptionId", () => {
 
     expect(isRight(res)).toBe(false);
     if (isLeft(res)) {
-      expect(res.left).toEqual({ kind: "apimsuberror" });
+      expect(res.left).toEqual({
+        kind: "apimsuberror",
+        message: "APIM Generic error"
+      });
     }
   });
 });
@@ -211,6 +215,28 @@ describe("storeDocumentApimToDatabase", () => {
     if (isRight(res)) {
       expect(res.right).toHaveProperty("command", "INSERT");
       expect(res.right).toHaveProperty("rowCount", 1);
+    }
+  });
+});
+
+describe("queryDataTable", () => {
+  it("should return duplicate Primary Key", async () => {
+    const mockClientPool = await mockClient.connect();
+    mockClientPool.query.mockImplementationOnce(() =>
+      Promise.reject({
+        code: "23505"
+      })
+    );
+    const res = await queryDataTable(
+      mockClientPool,
+      `INSERT INTO "ServicesMigration"."Services"(
+	"subscriptionId", "organizationFiscalCode", "sourceId", "sourceName", "sourceSurname", "sourceEmail", status, note, "serviceVersion", "serviceName")
+	VALUES ('01EYNQ0864HKYR1Q9PXPJ18W7G', '111', '111', 'Test', 'Test', 'Test', 'test', 'test', 1, 'test');`
+    )();
+
+    expect(isLeft(res)).toBe(true);
+    if (isLeft(res)) {
+      expect(res.left.message).toBe("Duplicate Primary Key");
     }
   });
 });
