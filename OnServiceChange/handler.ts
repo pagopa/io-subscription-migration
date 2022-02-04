@@ -244,8 +244,7 @@ export const storeDocumentApimToDatabase = (
                       difference: Math.floor(
                         // Cosmos store ts in second so we need to translate in milliseconds
                         // eslint-disable-next-line no-underscore-dangle
-                        (new Date().getTime() - retrievedDocument._ts * 1000) /
-                          (1000 * 3600 * 24)
+                        new Date().getTime() - retrievedDocument._ts * 1000
                       ),
                       message: "Processed document",
                       serviceId: retrievedDocument.serviceId
