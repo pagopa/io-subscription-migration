@@ -180,9 +180,8 @@ export const log = (d: unknown): void => {
 };
 
 export const onInvalidDocument = (
-  d: unknown,
   telemetryClient: ReturnType<typeof initTelemetryClient>
-): T.Task<void> => {
+) => (d: unknown): T.Task<void> => {
   telemetryClient.trackEvent({
     name: "selfcare.subsmigrations.services.oninvaliddocument",
     properties: {
@@ -195,9 +194,8 @@ export const onInvalidDocument = (
 };
 
 export const onIgnoredDocument = (
-  d: unknown,
   telemetryClient: ReturnType<typeof initTelemetryClient>
-): void => {
+) => (d: unknown): void => {
   telemetryClient.trackEvent({
     name: "selfcare.subsmigrations.services.onignoredocument",
     properties: {
@@ -256,7 +254,7 @@ export const storeDocumentApimToDatabase = (
               )
             : // processing is successful, just ignore the document
               TE.of<DomainError, QueryResult | void>(
-                onIgnoredDocument(retrievedDocument, telemetryClient)
+                onIgnoredDocument(telemetryClient)(retrievedDocument)
               )
         )
       )
@@ -280,7 +278,7 @@ export const createServiceChangeHandler = (
     RA.map(validateDocument),
     RA.map(
       E.fold(
-        document => onInvalidDocument(document, telemetryClient),
+        document => onInvalidDocument(telemetryClient)(document),
         flow(
           document =>
             storeDocumentApimToDatabase(
