@@ -186,7 +186,7 @@ export const onInvalidDocument = (
   telemetryClient.trackEvent({
     name: "selfcare.services.oninvaliddocument",
     properties: {
-      document: d,
+      documentId: (d as RetrievedService).serviceId,
       message: "Invalid document received"
     },
     tagOverrides: { samplingEnabled: "false" }
@@ -201,7 +201,7 @@ export const onIgnoredDocument = (
   telemetryClient.trackEvent({
     name: "selfcare.services.onignoredocument",
     properties: {
-      document: d,
+      documentId: (d as RetrievedService).serviceId,
       message: "Ignore document"
     },
     tagOverrides: { samplingEnabled: "false" }
