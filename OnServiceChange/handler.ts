@@ -181,7 +181,7 @@ export const log = (d: unknown): void => {
 
 export const onInvalidDocument = (
   telemetryClient: ReturnType<typeof initTelemetryClient>
-) => (d: unknown): T.Task<void> => {
+) => (d: unknown): void => {
   telemetryClient.trackEvent({
     name: "selfcare.subsmigrations.services.oninvaliddocument",
     properties: {
@@ -190,7 +190,6 @@ export const onInvalidDocument = (
     },
     tagOverrides: { samplingEnabled: "false" }
   });
-  throw new Error(`To be implement ${JSON.stringify(d, null, 2)}`);
 };
 
 export const onIgnoredDocument = (
@@ -278,7 +277,7 @@ export const createServiceChangeHandler = (
     RA.map(validateDocument),
     RA.map(
       E.fold(
-        document => onInvalidDocument(telemetryClient)(document),
+        document => T.of(onInvalidDocument(telemetryClient)(document)),
         flow(
           document =>
             storeDocumentApimToDatabase(
