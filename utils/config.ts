@@ -65,11 +65,15 @@ export const IDecodableConfigPostgreSQL = t.interface({
 export type IDecodableConfigAppInsight = t.TypeOf<
   typeof IDecodableConfigAppInsight
 >;
-export const IDecodableConfigAppInsight = t.interface({
-  APPINSIGHTS_DISABLE: NonEmptyString,
-  APPINSIGHTS_INSTRUMENTATIONKEY: NonEmptyString,
-  APPINSIGHTS_SAMPLING_PERCENTAGE: withDefault(IntegerFromString, 5)
-});
+export const IDecodableConfigAppInsight = t.intersection([
+  t.interface({
+    APPINSIGHTS_INSTRUMENTATIONKEY: NonEmptyString
+  }),
+  t.partial({
+    APPINSIGHTS_DISABLE: NonEmptyString,
+    APPINSIGHTS_SAMPLING_PERCENTAGE: withDefault(IntegerFromString, 5)
+  })
+]);
 
 export type IConfig = t.TypeOf<typeof IConfig>;
 export const IConfig = t.intersection([
