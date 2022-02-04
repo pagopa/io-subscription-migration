@@ -27,3 +27,21 @@ export const onIgnoredDocument = (
   });
   return void 0;
 };
+
+export const onProcessedDocument = (
+  telemetryClient: ReturnType<typeof initTelemetryClient>
+) => (retrievedDocument: RetrievedService): void => {
+  telemetryClient.trackEvent({
+    name: "selfcare.subsmigrations.services.processeddocument",
+    properties: {
+      difference: Math.floor(
+        // Cosmos store ts in second so we need to translate in milliseconds
+        // eslint-disable-next-line no-underscore-dangle
+        new Date().getTime() - retrievedDocument._ts * 1000
+      ),
+      message: "Processed document",
+      serviceId: retrievedDocument.serviceId
+    },
+    tagOverrides: { samplingEnabled: "false" }
+  });
+};

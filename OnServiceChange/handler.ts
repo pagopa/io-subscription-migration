@@ -36,7 +36,11 @@ import {
   mapPostgreSQLError
 } from "../utils/mapError";
 import { initTelemetryClient } from "../utils/appinsight";
-import { onIgnoredDocument, onInvalidDocument } from "../utils/tracking";
+import {
+  onIgnoredDocument,
+  onInvalidDocument,
+  onProcessedDocument
+} from "../utils/tracking";
 
 export const validateDocument = (
   document: unknown
@@ -209,19 +213,7 @@ export const storeDocumentApimToDatabase = (
                 createUpsertSql(config),
                 sql => queryDataTable(pool, sql),
                 res => {
-                  telemetryClient.trackEvent({
-                    name: "selfcare.subsmigrations.services.processeddocument",
-                    properties: {
-                      difference: Math.floor(
-                        // Cosmos store ts in second so we need to translate in milliseconds
-                        // eslint-disable-next-line no-underscore-dangle
-                        new Date().getTime() - retrievedDocument._ts * 1000
-                      ),
-                      message: "Processed document",
-                      serviceId: retrievedDocument.serviceId
-                    },
-                    tagOverrides: { samplingEnabled: "false" }
-                  });
+                  onProcessedDocument(telemetryClient)(retrievedDocument);
                   return res;
                 }
               )
