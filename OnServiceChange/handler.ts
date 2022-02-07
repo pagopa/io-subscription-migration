@@ -39,7 +39,7 @@ import {
 import { initTelemetryClient } from "../utils/appinsight";
 import {
   trackIgnoredIncomingDocument,
-  trackIgnoredInvalidIncomingDocument,
+  trackInvalidIncomingDocument,
   trackProcessedServiceDocument
 } from "../utils/tracking";
 
@@ -245,10 +245,7 @@ export const createServiceChangeHandler = (
         validateDocument,
         E.mapLeft(err => {
           const reason = readableReport(err);
-          trackIgnoredInvalidIncomingDocument(telemetryClient)(
-            document,
-            reason
-          );
+          trackInvalidIncomingDocument(telemetryClient)(document, reason);
           return err;
         })
       )
