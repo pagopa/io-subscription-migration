@@ -7,7 +7,7 @@ import { initTelemetryClient } from "./appinsight";
  * @param telemetryClient
  * @returns
  */
-export const trackIgnoredInvalidIncomingDocument = (
+export const trackInvalidIncomingDocument = (
   telemetryClient: ReturnType<typeof initTelemetryClient>
 ) => (
   d: unknown = {} /** default empty object to prevent nullish values */,
@@ -17,7 +17,6 @@ export const trackIgnoredInvalidIncomingDocument = (
     name: "selfcare.subsmigrations.services.invalid-incoming-document",
     properties: {
       documentId: (d as RetrievedService).id,
-      message: "Invalid document received",
       reason
     },
     tagOverrides: { samplingEnabled: "false" }
@@ -38,8 +37,7 @@ export const trackIgnoredIncomingDocument = (
   telemetryClient.trackEvent({
     name: "selfcare.subsmigrations.services.ignored-incoming-document",
     properties: {
-      documentId: (d as RetrievedService).id,
-      message: "Ignore document"
+      documentId: (d as RetrievedService).id
     },
     tagOverrides: { samplingEnabled: "false" }
   });
@@ -59,7 +57,6 @@ export const trackProcessedServiceDocument = (
     name: "selfcare.subsmigrations.services.processed-service",
     properties: {
       documentId: retrievedDocument.id,
-      message: "Processed document",
       serviceId: retrievedDocument.serviceId,
       // the time elapsed between when the doc has been created and when it has been processed
       timeDifference: Math.floor(
