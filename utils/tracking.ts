@@ -1,26 +1,44 @@
 import { RetrievedService } from "@pagopa/io-functions-commons/dist/src/models/service";
 import { initTelemetryClient } from "./appinsight";
 
-export const onInvalidDocument = (
+/**
+ * Track when an incoming service document is invalid
+ *
+ * @param telemetryClient
+ * @returns
+ */
+export const trackIgnoredInvalidIncomingDocument = (
   telemetryClient: ReturnType<typeof initTelemetryClient>
-) => (d: unknown): void => {
+) => (
+  d: unknown = {} /** default empty object to prevent nullish values */,
+  reason: string = ""
+): void => {
   telemetryClient.trackEvent({
-    name: "selfcare.subsmigrations.services.oninvaliddocument",
+    name: "selfcare.subsmigrations.services.invalid-incoming-document",
     properties: {
-      documentId: (d as RetrievedService).serviceId,
-      message: "Invalid document received"
+      documentId: (d as RetrievedService).id,
+      message: "Invalid document received",
+      reason
     },
     tagOverrides: { samplingEnabled: "false" }
   });
 };
 
-export const onIgnoredDocument = (
+/**
+ * Track when an incoming service document is ignored for any reason
+ *
+ * @param telemetryClient
+ * @returns
+ */
+export const trackIgnoredIncomingDocument = (
   telemetryClient: ReturnType<typeof initTelemetryClient>
-) => (d: unknown): void => {
+) => (
+  d: unknown = {} /** default empty object to prevent nullish values */
+): void => {
   telemetryClient.trackEvent({
-    name: "selfcare.subsmigrations.services.onignoredocument",
+    name: "selfcare.subsmigrations.services.ignored-incoming-document",
     properties: {
-      documentId: (d as RetrievedService).serviceId,
+      documentId: (d as RetrievedService).id,
       message: "Ignore document"
     },
     tagOverrides: { samplingEnabled: "false" }
@@ -28,19 +46,27 @@ export const onIgnoredDocument = (
   return void 0;
 };
 
-export const onProcessedDocument = (
+/**
+ * Track when a Service document is processed
+ *
+ * @param telemetryClient
+ * @returns
+ */
+export const trackProcessedServiceDocument = (
   telemetryClient: ReturnType<typeof initTelemetryClient>
 ) => (retrievedDocument: RetrievedService): void => {
   telemetryClient.trackEvent({
-    name: "selfcare.subsmigrations.services.processeddocument",
+    name: "selfcare.subsmigrations.services.processed-service",
     properties: {
-      difference: Math.floor(
+      documentId: retrievedDocument.id,
+      message: "Processed document",
+      serviceId: retrievedDocument.serviceId,
+      // the time elapsed between when the doc has been created and when it has been processed
+      timeDifference: Math.floor(
         // Cosmos store ts in second so we need to translate in milliseconds
         // eslint-disable-next-line no-underscore-dangle
-        new Date().getTime() - retrievedDocument._ts * 1000
-      ),
-      message: "Processed document",
-      serviceId: retrievedDocument.serviceId
+        Date.now() - retrievedDocument._ts * 1000
+      )
     },
     tagOverrides: { samplingEnabled: "false" }
   });

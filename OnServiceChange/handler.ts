@@ -37,9 +37,9 @@ import {
 } from "../utils/mapError";
 import { initTelemetryClient } from "../utils/appinsight";
 import {
-  onIgnoredDocument,
-  onInvalidDocument,
-  onProcessedDocument
+  trackIgnoredIncomingDocument,
+  trackIgnoredInvalidIncomingDocument,
+  trackProcessedServiceDocument
 } from "../utils/tracking";
 
 export const validateDocument = (
@@ -213,13 +213,15 @@ export const storeDocumentApimToDatabase = (
                 createUpsertSql(config),
                 sql => queryDataTable(pool, sql),
                 res => {
-                  onProcessedDocument(telemetryClient)(retrievedDocument);
+                  trackProcessedServiceDocument(telemetryClient)(
+                    retrievedDocument
+                  );
                   return res;
                 }
               )
             : // processing is successful, just ignore the document
               TE.of<DomainError, QueryResult | void>(
-                onIgnoredDocument(telemetryClient)(retrievedDocument)
+                trackIgnoredIncomingDocument(telemetryClient)(retrievedDocument)
               )
         )
       )
@@ -244,7 +246,8 @@ export const createServiceChangeHandler = (
     RA.map(validateDocument),
     RA.map(
       E.fold(
-        document => T.of(onInvalidDocument(telemetryClient)(document)),
+        document =>
+          T.of(trackIgnoredInvalidIncomingDocument(telemetryClient)(document)),
         flow(
           document =>
             storeDocumentApimToDatabase(
