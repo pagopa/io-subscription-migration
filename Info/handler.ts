@@ -15,6 +15,8 @@ import * as TE from "fp-ts/lib/TaskEither";
 import * as packageJson from "../package.json";
 
 import { envConfig, IConfig } from "../utils/config";
+import apimHealthCheck from "./healthcheck.apim";
+import postgresHealthCheck from "./healthcheck.postgres";
 
 interface IInfo {
   readonly name: string;
@@ -27,7 +29,10 @@ type InfoHandler = () => Promise<
 
 type HealthChecker = (
   config: unknown
-) => healthcheck.HealthCheck<healthcheck.ProblemSource, true>;
+) => healthcheck.HealthCheck<
+  "AzureCosmosDB" | "AzureStorage" | "APIM" | "PostgresSQL" | "Config",
+  true
+>;
 
 export const InfoHandler = (
   checkApplicationHealth: HealthChecker
@@ -47,13 +52,14 @@ export const InfoHandler = (
     TE.toUnion
   )();
 
-export const Info = (): express.RequestHandler => {
-  const handler = InfoHandler(
+export const Info = (): express.RequestHandler =>
+  pipe(
     healthcheck.checkApplicationHealth(IConfig, [
       c => healthcheck.checkAzureCosmosDbHealth(c.COSMOSDB_URI, c.COSMOSDB_KEY),
-      c => healthcheck.checkAzureStorageHealth(c.AzureWebJobsStorage)
-    ])
+      c => healthcheck.checkAzureStorageHealth(c.AzureWebJobsStorage),
+      c => apimHealthCheck(c),
+      c => postgresHealthCheck(c)
+    ]),
+    InfoHandler,
+    wrapRequestHandler
   );
-
-  return wrapRequestHandler(handler);
-};
