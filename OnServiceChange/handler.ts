@@ -10,6 +10,7 @@ import * as T from "fp-ts/lib/Task";
 import * as O from "fp-ts/lib/Option";
 import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
 import { RetrievedService } from "@pagopa/io-functions-commons/dist/src/models/service";
+import { readableReport } from "@pagopa/ts-commons/lib/reporters";
 import {
   IDbError,
   IApimSubError,
@@ -42,13 +43,8 @@ import {
   trackProcessedServiceDocument
 } from "../utils/tracking";
 
-export const validateDocument = (
-  document: unknown
-): E.Either<string, RetrievedService> =>
-  pipe(
-    RetrievedService.decode(document),
-    E.mapLeft(() => `Errore su ${document}`)
-  );
+// Incoming documents are expected to be of kind RetrievedService
+export const validateDocument = RetrievedService.decode;
 
 /*
  ** The right full path for ownerID is in this kind of format:
@@ -243,27 +239,39 @@ export const createServiceChangeHandler = (
       context.log(`${logPrefix}|Received ${d.length} documents.`);
       return d;
     },
-    RA.map(validateDocument),
+    // Validate each document
     RA.map(
-      E.fold(
-        document =>
-          T.of(trackIgnoredInvalidIncomingDocument(telemetryClient)(document)),
-        flow(
-          document =>
+      flow(
+        validateDocument,
+        E.mapLeft(err => {
+          const reason = readableReport(err);
+          trackIgnoredInvalidIncomingDocument(telemetryClient)(
+            document,
+            reason
+          );
+          return err;
+        })
+      )
+    ),
+    // process each valid document
+    RA.map(
+      flow(
+        TE.fromEither,
+        TE.chainW(
+          flow(
             storeDocumentApimToDatabase(
               apimClient,
               config,
               pool,
               telemetryClient
-            )(document),
-          TE.mapLeft(err => context.log(`${logPrefix}|Error ${err.kind}.`)),
-          TE.map(value =>
-            context.log(`${logPrefix}|Process ${value} document.`)
-          ),
-          TE.toUnion
+            ),
+            TE.mapLeft(err => context.log(`${logPrefix}|Error ${err.kind}.`))
+          )
         )
       )
     ),
+
+    // process each document in parallel
     RA.sequence(T.ApplicativePar),
     T.map(_ => void 0)
   )();
