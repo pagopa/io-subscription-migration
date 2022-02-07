@@ -10,6 +10,7 @@ import * as T from "fp-ts/lib/Task";
 import * as O from "fp-ts/lib/Option";
 import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
 import { RetrievedService } from "@pagopa/io-functions-commons/dist/src/models/service";
+import { readableReport } from "@pagopa/ts-commons/lib/reporters";
 import {
   IDbError,
   IApimSubError,
@@ -35,14 +36,15 @@ import {
   mapApimSubError,
   mapPostgreSQLError
 } from "../utils/mapError";
+import { initTelemetryClient } from "../utils/appinsight";
+import {
+  trackIgnoredIncomingDocument,
+  trackInvalidIncomingDocument,
+  trackProcessedServiceDocument
+} from "../utils/tracking";
 
-export const validateDocument = (
-  document: unknown
-): E.Either<string, RetrievedService> =>
-  pipe(
-    RetrievedService.decode(document),
-    E.mapLeft(() => `Errore su ${document}`)
-  );
+// Incoming documents are expected to be of kind RetrievedService
+export const validateDocument = RetrievedService.decode;
 
 /*
  ** The right full path for ownerID is in this kind of format:
@@ -178,16 +180,12 @@ export const log = (d: unknown): void => {
   throw new Error(`To be implement ${d}`);
 };
 
-export const onInvalidDocument = (d: unknown): T.Task<void> => {
-  throw new Error(`To be implement ${JSON.stringify(d, null, 2)}`);
-};
-
-export const onIgnoredDocument = (_d: unknown): void => void 0;
-
 export const storeDocumentApimToDatabase = (
   apimClient: ApiManagementClient,
   config: IConfig,
   pool: PoolClient,
+  telemetryClient: ReturnType<typeof initTelemetryClient>
+) => (
   retrievedDocument: RetrievedService
 ): TE.TaskEither<DomainError, QueryResult | void> =>
   pipe(
@@ -209,11 +207,17 @@ export const storeDocumentApimToDatabase = (
                 { apimSubscription, apimUser },
                 apimData => mapDataToTableRow(retrievedDocument, apimData),
                 createUpsertSql(config),
-                sql => queryDataTable(pool, sql)
+                sql => queryDataTable(pool, sql),
+                res => {
+                  trackProcessedServiceDocument(telemetryClient)(
+                    retrievedDocument
+                  );
+                  return res;
+                }
               )
             : // processing is successful, just ignore the document
               TE.of<DomainError, QueryResult | void>(
-                onIgnoredDocument(retrievedDocument)
+                trackIgnoredIncomingDocument(telemetryClient)(retrievedDocument)
               )
         )
       )
@@ -223,31 +227,48 @@ export const storeDocumentApimToDatabase = (
 export const createServiceChangeHandler = (
   config: IConfig,
   apimClient: ApiManagementClient,
-  client: Pool
-) => async (
-  context: Context,
-  documents: ReadonlyArray<unknown>
-): Promise<void> => {
+  client: Pool,
+  telemetryClient: ReturnType<typeof initTelemetryClient>
+) => async (context: Context, documents: unknown): Promise<void> => {
   const logPrefix = context.executionContext.functionName;
-  context.log(`${logPrefix}|Process ${documents.length} documents.`);
   const pool = await client.connect();
   return pipe(
-    documents,
-    RA.map(validateDocument),
+    // is documents always an array? We assume it can be something else
+    Array.isArray(documents) ? documents : [documents],
+    d => {
+      context.log(`${logPrefix}|Received ${d.length} documents.`);
+      return d;
+    },
+    // Validate each document
     RA.map(
-      E.fold(
-        onInvalidDocument,
-        flow(
-          document =>
-            storeDocumentApimToDatabase(apimClient, config, pool, document),
-          TE.mapLeft(err => context.log(`${logPrefix}|Error ${err.kind}.`)),
-          TE.map(value =>
-            context.log(`${logPrefix}|Process ${value} document.`)
-          ),
-          TE.toUnion
+      flow(
+        validateDocument,
+        E.mapLeft(err => {
+          const reason = readableReport(err);
+          trackInvalidIncomingDocument(telemetryClient)(document, reason);
+          return err;
+        })
+      )
+    ),
+    // process each valid document
+    RA.map(
+      flow(
+        TE.fromEither,
+        TE.chainW(
+          flow(
+            storeDocumentApimToDatabase(
+              apimClient,
+              config,
+              pool,
+              telemetryClient
+            ),
+            TE.mapLeft(err => context.log(`${logPrefix}|Error ${err.kind}.`))
+          )
         )
       )
     ),
+
+    // process each document in parallel
     RA.sequence(T.ApplicativePar),
     T.map(_ => void 0)
   )();
