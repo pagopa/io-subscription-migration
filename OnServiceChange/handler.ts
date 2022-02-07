@@ -231,15 +231,16 @@ export const createServiceChangeHandler = (
   apimClient: ApiManagementClient,
   client: Pool,
   telemetryClient: ReturnType<typeof initTelemetryClient>
-) => async (
-  context: Context,
-  documents: ReadonlyArray<unknown>
-): Promise<void> => {
+) => async (context: Context, documents: unknown): Promise<void> => {
   const logPrefix = context.executionContext.functionName;
-  context.log(`${logPrefix}|Process ${documents.length} documents.`);
   const pool = await client.connect();
   return pipe(
-    documents,
+    // is documents always an array? We assume it can be something else
+    Array.isArray(documents) ? documents : [documents],
+    d => {
+      context.log(`${logPrefix}|Received ${d.length} documents.`);
+      return d;
+    },
     RA.map(validateDocument),
     RA.map(
       E.fold(
