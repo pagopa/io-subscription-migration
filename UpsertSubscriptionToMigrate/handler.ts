@@ -253,12 +253,13 @@ export const createHandler = (
               telemetryClient
             ),
             TE.mapLeft(err => {
-              context.log(`${logPrefix}|Error ${err.kind}.`);
+              context.log(`${logPrefix}|Error ${err.kind}|${err.message}`);
               return new Error(err.message);
             })
           )
         ),
         TE.map(_ => void 0 /* we wxpect no return */),
+        // let the handler fail
         TE.getOrElse(err => {
           throw err;
         })
