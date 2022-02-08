@@ -254,7 +254,7 @@ export const createHandler = (
             )
           )
         ),
-        TE.map(_ => void 0 /* we wxpect no return */),
+        TE.map(_ => void 0 /* we expect no return */),
         // let the handler fail
         TE.getOrElse(err => {
           throw err;
