@@ -1,6 +1,9 @@
-import { ApiManagementClient } from "@azure/arm-apimanagement";
+import {
+  ApiManagementClient,
+  ErrorResponse as ApimErrorResponse
+} from "@azure/arm-apimanagement";
 import { flow, pipe } from "fp-ts/lib/function";
-import { Pool, PoolClient, QueryResult } from "pg";
+import { DatabaseError, Pool, PoolClient, QueryResult } from "pg";
 import { readableReport } from "@pagopa/ts-commons/lib/reporters";
 import * as O from "fp-ts/lib/Option";
 import * as E from "fp-ts/lib/Either";
@@ -30,14 +33,12 @@ import {
   toApimUserError,
   IDbError,
   DomainError,
-  toString
+  toString,
+  toPostgreSQLError,
+  toApimSubErrorMessage,
+  toPostgreSQLErrorMessage
 } from "../models/DomainErrors";
-import {
-  mapApimSubError,
-  ErrorApimResponse,
-  mapPostgreSQLError,
-  ErrorPostgreSQL
-} from "../utils/mapError";
+
 import {
   trackProcessedServiceDocument,
   trackIgnoredIncomingDocument
@@ -84,8 +85,12 @@ export const getApimOwnerBySubscriptionId = (
           apimConfig.APIM_SERVICE_NAME,
           subscriptionId
         ),
-      error => mapApimSubError(error as ErrorApimResponse)
+      error =>
+        error as ApimErrorResponse & {
+          readonly statusCode?: number;
+        }
     ),
+    TE.mapLeft(flow(toApimSubErrorMessage, toApimSubError)),
     TE.chain(subscriptionResponse =>
       pipe(
         subscriptionResponse.ownerId,
@@ -156,8 +161,9 @@ export const queryDataTable = (
   pipe(
     TE.tryCatch(
       () => dbClient.query(query),
-      error => mapPostgreSQLError(error as ErrorPostgreSQL)
-    )
+      error => error as DatabaseError
+    ),
+    TE.mapLeft(flow(toPostgreSQLErrorMessage, toPostgreSQLError))
   );
 
 export const createUpsertSql = (dbConfig: IDecodableConfigPostgreSQL) => (

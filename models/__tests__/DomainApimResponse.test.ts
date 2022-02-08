@@ -16,7 +16,7 @@ describe("RawApimUserResponse", () => {
     };
 
     const res = ApimDelegateUserResponse.decode(rawData);
-    console.log(res);
+
     expect(isRight(res)).toBe(true);
     if (isRight(res)) {
       expect(res.right).toHaveProperty("id");
@@ -37,7 +37,7 @@ describe("RawApimUserResponse", () => {
     };
 
     const res = ApimOrganizationUserResponse.decode(rawData);
-    console.log(res);
+
     expect(isRight(res)).toBe(true);
     if (isRight(res)) {
       expect(res.right).toHaveProperty("id");
