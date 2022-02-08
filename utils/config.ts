@@ -84,6 +84,10 @@ export const IConfig = t.intersection([
   t.interface({
     // default function app storage connection
     AzureWebJobsStorage: NonEmptyString,
+
+    INTERNAL_STORAGE_CONNECTION_STRING: NonEmptyString,
+    QUEUE_ADD_SERVICE_TO_MIGRATIONS: NonEmptyString,
+
     isProduction: t.boolean
   })
 ]);
