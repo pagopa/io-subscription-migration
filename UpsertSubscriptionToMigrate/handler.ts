@@ -231,12 +231,12 @@ export const storeDocumentApimToDatabase = (
 export const createHandler = (
   config: IConfig,
   apimClient: ApiManagementClient,
-  client: Pool,
+  pool: Pool,
   telemetryClient: ReturnType<typeof initTelemetryClient>
 ): Parameters<typeof withJsonInput>[0] =>
   withJsonInput(
     async (context, item): Promise<void> => {
-      const pool = await client.connect();
+      const dbClient = await pool.connect();
       return pipe(
         item,
         IncomingQueueItem.decode,
@@ -250,7 +250,7 @@ export const createHandler = (
             storeDocumentApimToDatabase(
               apimClient,
               config,
-              pool,
+              dbClient,
               telemetryClient
             ),
             TE.mapLeft(
@@ -265,6 +265,11 @@ export const createHandler = (
           )
         ),
         TE.map(_ => void 0 /* we expect no return */),
+        // release db connection anyway
+        _ => {
+          dbClient.release();
+          return _;
+        },
         // let the handler fail
         TE.getOrElse(err => {
           throw err;

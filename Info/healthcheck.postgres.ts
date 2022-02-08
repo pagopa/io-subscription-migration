@@ -6,7 +6,7 @@ import {
 } from "@pagopa/io-functions-commons/dist/src/utils/healthcheck";
 import { pipe } from "fp-ts/lib/function";
 import { toError } from "fp-ts/lib/Either";
-import clientDB from "../utils/dbconnector";
+import getPool from "../utils/dbconnector";
 import { IDecodableConfigPostgreSQL } from "../utils/config";
 
 const postgresHealthCheck = (
@@ -15,7 +15,7 @@ const postgresHealthCheck = (
   pipe(
     TE.tryCatch(async () => {
       // just check it can connect and execute a simple query
-      const pool = clientDB(config);
+      const pool = getPool(config);
       await pool.query("SELECT NOW()");
       await pool.end();
     }, toError),
