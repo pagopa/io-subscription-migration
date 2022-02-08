@@ -16,10 +16,20 @@ describe("ClaimProcedureStatus Type Check", () => {
       expect(queryRes.right).toEqual(mockStatus);
     }
   });
+
   it("should be a valid status with an empty response", () => {
     const queryRes = ClaimProcedureStatus.decode({});
     expect(E.isRight(queryRes)).toBe(true);
+    if (E.isRight(queryRes)) {
+      expect(queryRes.right).toEqual({
+        completed: 0,
+        failed: 0,
+        not_started: 0,
+        processing: 0
+      });
+    }
   });
+
   it("should not be a valid status with a null response", () => {
     const queryRes = ClaimProcedureStatus.decode(null);
     expect(E.isLeft(queryRes)).toBe(true);
