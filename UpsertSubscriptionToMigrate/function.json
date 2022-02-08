@@ -1,0 +1,12 @@
+{
+  "bindings": [
+    {
+      "queueName": "%QUEUE_ADD_SERVICE_TO_MIGRATIONS%",
+      "connection": "INTERNAL_STORAGE_CONNECTION_STRING",
+      "name": "incomingSubscription",
+      "type": "queueTrigger",
+      "direction": "in"
+    }
+  ],
+  "scriptFile": "../dist/UpsertSubscriptionToMigrate/index.js"
+}

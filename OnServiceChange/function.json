@@ -11,6 +11,13 @@
       "leaseCollectionName": "%COSMOSDB_SERVICES_LEASE_COLLECTION%",
       "createLeaseCollectionIfNotExists": true,
       "startFromBeginning": true
+    },
+    {
+      "queueName": "%QUEUE_ADD_SERVICE_TO_MIGRATIONS%",
+      "connection": "INTERNAL_STORAGE_CONNECTION_STRING",
+      "name": "incomingSubscriptions",
+      "type": "queue",
+      "direction": "out"
     }
   ],
   "scriptFile": "../dist/OnServiceChange/index.js"

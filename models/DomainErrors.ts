@@ -29,3 +29,6 @@ export const toPostgreSQLError = (message: string): IDbError => ({
 });
 
 export type DomainError = IDbError | IApimSubError | IApimUserError;
+
+export const toString = (err: DomainError): string =>
+  `${err.kind}|${err.message}`;
