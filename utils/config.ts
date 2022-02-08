@@ -54,7 +54,7 @@ export const IDecodableConfigPostgreSQL = t.interface({
   DB_IDLE_TIMEOUT: withDefault(NumberFromString, 30000),
   DB_NAME: NonEmptyString,
   DB_PASSWORD: NonEmptyString,
-  DB_PORT: NonEmptyString,
+  DB_PORT: NumberFromString,
   DB_SCHEMA: NonEmptyString,
   DB_TABLE: NonEmptyString,
   DB_USER: NonEmptyString

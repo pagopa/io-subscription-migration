@@ -6,7 +6,7 @@ const pool = (
   db: {
     readonly name: NonEmptyString;
     readonly host: NonEmptyString;
-    readonly port: NonEmptyString;
+    readonly port: number;
   },
   credentials: {
     readonly user: NonEmptyString;
@@ -15,9 +15,14 @@ const pool = (
   options: { readonly idleTimeout: number } = { idleTimeout: 30000 }
 ): Pool =>
   new Pool({
-    connectionString: `postgres://${credentials.user}:${credentials.password}@${db.host}:${db.port}/${db.name}`,
+    database: db.name,
+    host: db.host,
     idleTimeoutMillis: options.idleTimeout,
-    max: 20
+    max: 20,
+    password: credentials.password,
+    port: db.port,
+    ssl: true,
+    user: credentials.user
   });
 
 export const clientDB = (config: IDecodableConfigPostgreSQL): Pool =>
