@@ -1,5 +1,5 @@
 import { getConfigOrThrow } from "../utils/config";
-import clientDB from "../utils/dbconnector";
+import getPool from "../utils/dbconnector";
 import { getApiClient } from "../utils/apim";
 import { initTelemetryClient } from "../utils/appinsight";
 import { createHandler } from "./handler";
@@ -10,7 +10,7 @@ const config = getConfigOrThrow();
 const telemetryClient = initTelemetryClient(config);
 
 // Setup PostgreSQL DB Pool
-const client = clientDB(config);
+const pool = getPool(config);
 const apimClient = getApiClient(
   {
     clientId: config.APIM_CLIENT_ID,
@@ -23,7 +23,7 @@ const apimClient = getApiClient(
 const handleServicesChange = createHandler(
   config,
   apimClient,
-  client,
+  pool,
   telemetryClient
 );
 

@@ -1,44 +1,22 @@
-import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
 import { Pool } from "pg";
 import { IDecodableConfigPostgreSQL } from "./config";
 
-const pool = (
-  db: {
-    readonly name: NonEmptyString;
-    readonly host: NonEmptyString;
-    readonly port: number;
-  },
-  credentials: {
-    readonly user: NonEmptyString;
-    readonly password: NonEmptyString;
-  },
-  options: { readonly idleTimeout: number } = { idleTimeout: 30000 }
-): Pool =>
-  new Pool({
-    database: db.name,
-    host: db.host,
-    idleTimeoutMillis: options.idleTimeout,
-    max: 20,
-    password: credentials.password,
-    port: db.port,
-    ssl: true,
-    user: credentials.user
-  });
-
-export const clientDB = (config: IDecodableConfigPostgreSQL): Pool =>
-  pool(
-    {
+// eslint-disable-next-line functional/no-let
+let singletonPool: Pool;
+export const getPool = (config: IDecodableConfigPostgreSQL): Pool => {
+  if (!singletonPool) {
+    singletonPool = new Pool({
+      database: config.DB_NAME,
       host: config.DB_HOST,
-      name: config.DB_NAME,
-      port: config.DB_PORT
-    },
-    {
+      idleTimeoutMillis: config.DB_IDLE_TIMEOUT,
+      max: 20,
       password: config.DB_PASSWORD,
+      port: config.DB_PORT,
+      ssl: true,
       user: config.DB_USER
-    },
-    {
-      idleTimeout: config.DB_IDLE_TIMEOUT
-    }
-  );
+    });
+  }
+  return singletonPool;
+};
 
-export default clientDB;
+export default getPool;
