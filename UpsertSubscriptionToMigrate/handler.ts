@@ -169,8 +169,9 @@ export const queryDataTable = (
 export const createUpsertSql = (dbConfig: IDecodableConfigPostgreSQL) => (
   data: MigrationRowDataTable,
   excludeStatus: "PENDING" = "PENDING"
-): NonEmptyString =>
-  `INSERT INTO "${dbConfig.DB_SCHEMA}"."${dbConfig.DB_TABLE}"(
+): NonEmptyString => {
+  const table = `"${dbConfig.DB_SCHEMA}"."${dbConfig.DB_TABLE}"`;
+  return `INSERT INTO ${table}(
         "subscriptionId", "organizationFiscalCode", "sourceId", "sourceName",
         "sourceSurname", "sourceEmail", "serviceVersion", "serviceName")
         VALUES ('${data.subscriptionId}', '${data.organizationFiscalCode}', '${data.sourceId}', '${data.sourceName}', '${data.sourceSurname}', '${data.sourceEmail}', '${data.serviceVersion}', '${data.serviceName}')
@@ -179,10 +180,10 @@ export const createUpsertSql = (dbConfig: IDecodableConfigPostgreSQL) => (
             SET "organizationFiscalCode" = "excluded"."organizationFiscalCode",
             "serviceVersion" = "excluded"."serviceVersion",
             "serviceName" = "excluded"."serviceName"
-            WHERE "ServicesMigration"."Services"."status" <> '${excludeStatus}'
-            AND "ServicesMigration"."Services"."serviceVersion" < "excluded"."serviceVersion"
+            WHERE ${table}."status" <> '${excludeStatus}'
+            AND ${table}."serviceVersion" < "excluded"."serviceVersion"
     ` as NonEmptyString;
-
+};
 export const storeDocumentApimToDatabase = (
   apimClient: ApiManagementClient,
   config: IConfig,
