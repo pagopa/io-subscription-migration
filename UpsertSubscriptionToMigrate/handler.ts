@@ -176,10 +176,6 @@ export const createUpsertSql = (dbConfig: IDecodableConfigPostgreSQL) => (
             AND "ServicesMigration"."Services"."serviceVersion" < "excluded"."serviceVersion"
     ` as NonEmptyString;
 
-export const log = (d: unknown): void => {
-  throw new Error(`To be implement ${d}`);
-};
-
 export const storeDocumentApimToDatabase = (
   apimClient: ApiManagementClient,
   config: IConfig,
