@@ -10,7 +10,7 @@ import * as RA from "fp-ts/lib/ReadonlyArray";
 import { RetrievedService } from "@pagopa/io-functions-commons/dist/src/models/service";
 
 import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
-import { withJsonInput } from "../utils/misc";
+import { logError, withJsonInput } from "../utils/misc";
 import {
   IConfig,
   IDecodableConfigAPIM,
@@ -29,7 +29,8 @@ import {
   IApimUserError,
   toApimUserError,
   IDbError,
-  DomainError
+  DomainError,
+  toString
 } from "../models/DomainErrors";
 import {
   mapApimSubError,
@@ -228,16 +229,13 @@ export const createHandler = (
 ): Parameters<typeof withJsonInput>[0] =>
   withJsonInput(
     async (context, item): Promise<void> => {
-      const logPrefix = context.executionContext.functionName;
       const pool = await client.connect();
       return pipe(
         item,
         IncomingQueueItem.decode,
-        E.mapLeft(failures => {
-          const err = new Error(readableReport(failures));
-          context.log(`${logPrefix}|Invalid incoming message: ${err.message}`);
-          return err;
-        }),
+        E.mapLeft(
+          flow(readableReport, logError(context, "Invalid incoming message"))
+        ),
         TE.fromEither,
         TE.chainW(
           flow(
@@ -248,10 +246,12 @@ export const createHandler = (
               pool,
               telemetryClient
             ),
-            TE.mapLeft(err => {
-              context.log(`${logPrefix}|Error ${err.kind}|${err.message}`);
-              return new Error(err.message);
-            })
+            TE.mapLeft(
+              flow(
+                toString,
+                logError(context, "Failed to process subscription")
+              )
+            )
           )
         ),
         TE.map(_ => void 0 /* we wxpect no return */),

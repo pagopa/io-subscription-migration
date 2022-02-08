@@ -3,8 +3,24 @@ import * as RA from "fp-ts/lib/ReadonlyArray";
 import * as E from "fp-ts/lib/Either";
 import { Context } from "@azure/functions";
 import { Json, JsonFromString } from "io-ts-types";
-import { pipe } from "fp-ts/lib/function";
+import { flow, pipe } from "fp-ts/lib/function";
 import { readableReport } from "@pagopa/ts-commons/lib/reporters";
+
+/**
+ * Trace an incoming error and return it. To be added in a pipeline for not interrupt the flow.
+ *
+ * @param context the context of the Azure function
+ * @param label defines the error family and meaning
+ * @returns an error
+ */
+export const logError = (context: Context, label: string) => (
+  reason: string | Error
+): Error => {
+  const err =
+    reason instanceof Error ? reason : new Error(`${label}|${reason}`);
+  context.log.error(`${context.executionContext.functionName}|${err.message}`);
+  return err;
+};
 
 /**
  * Wrap a function handler so that every input is a valid JSON object
@@ -19,12 +35,8 @@ export const withJsonInput = (
     context: Context,
     ...parsedInputs: ReadonlyArray<Json>
   ) => Promise<unknown>
-) => (
-  context: Context,
-  ...inputs: ReadonlyArray<unknown>
-): Promise<unknown> => {
-  const logPrefix = context.executionContext.functionName;
-  return pipe(
+) => (context: Context, ...inputs: ReadonlyArray<unknown>): Promise<unknown> =>
+  pipe(
     inputs,
     RA.map(input =>
       pipe(
@@ -35,16 +47,14 @@ export const withJsonInput = (
       )
     ),
     RA.sequence(E.Applicative),
+    E.mapLeft(
+      flow(
+        readableReport,
+        logError(context, "Cannot parse incoming queue item into JSON object")
+      )
+    ),
     E.getOrElseW(err => {
-      context.log.error(
-        `${logPrefix}|invalid incoming queue item|${readableReport(err)}`
-      );
-      throw new Error(
-        `Cannot parse incoming queue item into JSON object: ${readableReport(
-          err
-        )}`
-      );
+      throw err;
     }),
     parsedInputs => handler(context, ...parsedInputs)
   );
-};
