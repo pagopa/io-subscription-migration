@@ -244,9 +244,9 @@ export const createHandler = (
           flow(readableReport, logError(context, "Invalid incoming message"))
         ),
         TE.fromEither,
-        TE.chainW(
-          flow(
-            _ => _.service,
+        TE.chainW(({ service }) =>
+          pipe(
+            service,
             storeDocumentApimToDatabase(
               apimClient,
               config,
@@ -256,7 +256,10 @@ export const createHandler = (
             TE.mapLeft(
               flow(
                 toString,
-                logError(context, "Failed to process subscription")
+                logError(
+                  context,
+                  `Failed to process subscription|${service.id}`
+                )
               )
             )
           )
