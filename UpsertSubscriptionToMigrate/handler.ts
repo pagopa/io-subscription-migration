@@ -3,7 +3,7 @@ import {
   ErrorResponse as ApimErrorResponse
 } from "@azure/arm-apimanagement";
 import { flow, pipe } from "fp-ts/lib/function";
-import { DatabaseError, Pool, PoolClient, QueryResult } from "pg";
+import { DatabaseError, Pool, QueryResult } from "pg";
 import { readableReport } from "@pagopa/ts-commons/lib/reporters";
 import * as O from "fp-ts/lib/Option";
 import * as E from "fp-ts/lib/Either";
@@ -155,12 +155,12 @@ export const mapDataToTableRow = (
 });
 
 export const queryDataTable = (
-  dbClient: PoolClient,
+  pool: Pool,
   query: string
 ): TE.TaskEither<IDbError, QueryResult> =>
   pipe(
     TE.tryCatch(
-      () => dbClient.query(query),
+      () => pool.query(query),
       error => error as DatabaseError
     ),
     TE.mapLeft(flow(toPostgreSQLErrorMessage, toPostgreSQLError))
@@ -187,7 +187,7 @@ export const createUpsertSql = (dbConfig: IDecodableConfigPostgreSQL) => (
 export const storeDocumentApimToDatabase = (
   apimClient: ApiManagementClient,
   config: IConfig,
-  pool: PoolClient,
+  pool: Pool,
   telemetryClient: ReturnType<typeof initTelemetryClient>
 ) => (
   retrievedDocument: RetrievedService
@@ -235,9 +235,8 @@ export const createHandler = (
   telemetryClient: ReturnType<typeof initTelemetryClient>
 ): Parameters<typeof withJsonInput>[0] =>
   withJsonInput(
-    async (context, item): Promise<void> => {
-      const dbClient = await pool.connect();
-      return pipe(
+    async (context, item): Promise<void> =>
+      pipe(
         item,
         IncomingQueueItem.decode,
         E.mapLeft(
@@ -250,7 +249,7 @@ export const createHandler = (
             storeDocumentApimToDatabase(
               apimClient,
               config,
-              dbClient,
+              pool,
               telemetryClient
             ),
             TE.mapLeft(
@@ -265,15 +264,9 @@ export const createHandler = (
           )
         ),
         TE.map(_ => void 0 /* we expect no return */),
-        // release db connection anyway
-        _ => {
-          dbClient.release();
-          return _;
-        },
         // let the handler fail
         TE.getOrElse(err => {
           throw err;
         })
-      )();
-    }
+      )()
   );
