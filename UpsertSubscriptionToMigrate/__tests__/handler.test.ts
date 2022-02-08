@@ -144,7 +144,7 @@ describe("getApimOwnerBySubscriptionId", () => {
     if (isLeft(res)) {
       expect(res.left).toEqual({
         kind: "apimsuberror",
-        message: "APIM Generic error"
+        message: expect.stringContaining("APIM Generic error")
       });
     }
   });
@@ -238,7 +238,9 @@ describe("queryDataTable", () => {
 
     expect(isLeft(res)).toBe(true);
     if (isLeft(res)) {
-      expect(res.left.message).toBe("Duplicate Primary Key");
+      expect(res.left.message).toEqual(
+        expect.stringContaining("Duplicate Primary Key")
+      );
     }
   });
 });
