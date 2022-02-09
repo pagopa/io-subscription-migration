@@ -17,7 +17,6 @@ const postgresHealthCheck = (
       // just check it can connect and execute a simple query
       const pool = getPool(config);
       await pool.query("SELECT NOW()");
-      await pool.end();
     }, toError),
     TE.mapLeft(err => toHealthProblems("PostgresSQL")(err.message)),
     TE.map(_ => true)
