@@ -54,7 +54,7 @@ const Handler = (): express.RequestHandler => {
 const setupExpress = (): express.Express => {
   const app = express();
   app.get(
-    "/api/v1/organization/:organizationFiscalCode/ownership-status/:delegate_id",
+    "/api/v1/organizations/:organizationFiscalCode/ownership-claims/:delegate_id",
     Handler()
   );
   return app;
