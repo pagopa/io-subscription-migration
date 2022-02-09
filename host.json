@@ -16,6 +16,9 @@
   "extensions": {
     "http": {
       "routePrefix": ""
+    },
+    "queues": {
+      "batchSize": 1
     }
   },
   "extensionBundle": {
