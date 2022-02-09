@@ -54,8 +54,8 @@ paths:
 definitions:
   ClaimProcedureStatus:
     type: object
-    properties: 
-      status: 
+    properties:
+      status:
         type: object
         properties:
           completed:
@@ -79,7 +79,7 @@ definitions:
           - failed
           - initial
           - processing
-    required: 
+    required:
       - status
   ProblemJson:
     type: object
