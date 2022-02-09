@@ -42,7 +42,7 @@ import {
   trackProcessedServiceDocument,
   trackIgnoredIncomingDocument
 } from "../utils/tracking";
-import { queryDataTable } from "../utils/dbconnector";
+import { queryDataTable } from "../utils/db";
 import { IncomingQueueItem } from "./types";
 
 // Incoming documents are expected to be of kind RetrievedService

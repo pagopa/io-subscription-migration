@@ -19,7 +19,7 @@ import { ApiManagementClient } from "@azure/arm-apimanagement";
 import { QueryResult } from "pg";
 import { RetrievedService } from "@pagopa/io-functions-commons/dist/src/models/service";
 import { NonNegativeInteger } from "@pagopa/ts-commons/lib/numbers";
-import { queryDataTable } from "../../utils/dbconnector";
+import { queryDataTable } from "../../utils/db";
 
 const mockSubscriptionId = "00000000000000000000000000" as NonEmptyString;
 const mockOwnerId = "/subscriptions/subid/resourceGroups/resourceGroupName/providers/Microsoft.ApiManagement/service/apimServiceName/users/00000000000000000000000000" as NonEmptyString;

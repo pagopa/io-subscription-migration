@@ -1,5 +1,5 @@
 import { getConfigOrThrow } from "../utils/config";
-import getPool from "../utils/dbconnector";
+import getPool from "../utils/db";
 import { getApiClient } from "../utils/apim";
 import { initTelemetryClient } from "../utils/appinsight";
 import { createHandler } from "./handler";
