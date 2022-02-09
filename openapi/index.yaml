@@ -40,7 +40,7 @@ paths:
         "404":
           description: Not found.
       parameters: []
-  /organizations/{organization_fiscal_code}/ownership-status/{delegate_id}:
+  /organizations/{organization_fiscal_code}/ownership-claims/{delegate_id}:
     get:
       operationId: getOwnershipClaimStatus
       summary: Retrieve migration status of all subscriptions owned by a Delegate on behalf of an Organization
