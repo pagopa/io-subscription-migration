@@ -32,12 +32,14 @@ export const trackInvalidIncomingDocument = (
 export const trackIgnoredIncomingDocument = (
   telemetryClient: ReturnType<typeof initTelemetryClient>
 ) => (
-  d: unknown = {} /** default empty object to prevent nullish values */
+  d: unknown = {} /** default empty object to prevent nullish values */,
+  reason: string = ""
 ): void => {
   telemetryClient.trackEvent({
     name: "selfcare.subsmigrations.services.ignored-incoming-document",
     properties: {
-      documentId: (d as RetrievedService).id
+      documentId: (d as RetrievedService).id,
+      reason
     },
     tagOverrides: { samplingEnabled: "false" }
   });
