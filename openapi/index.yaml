@@ -24,10 +24,14 @@ paths:
         - name: organization_fiscal_code
           in: path
           type: string
+          format: OrganizationFiscalCode
+          x-import: '@pagopa/ts-commons/lib/strings'
+          example: "12345678901"
           required: true
         - name: delegate_id
           in: path
           type: string
+          minLength: 1
           required: true
       responses:
         '200':
@@ -39,6 +43,8 @@ paths:
                 $ref: '#/definitions/ClaimProcedureStatus'
             required:
               - items
+        '400':
+          description: Bad Request
         '401':
           description: Unauthorized
         '404':
@@ -49,13 +55,6 @@ paths:
           schema:
             $ref: '#/definitions/ProblemJson'
 definitions:
-  Input:
-    type: object
-    properties:
-      id:
-        type: string
-      output:
-        type: string
   ClaimProcedureStatus:
     type: object
     properties:
