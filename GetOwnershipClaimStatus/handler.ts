@@ -1,49 +1,48 @@
-import { Context, HttpRequest } from "@azure/functions";
-import createAzureFunctionHandler from "@pagopa/express-azure-functions/dist/src/createAzureFunctionsHandler";
-import { setAppContext } from "@pagopa/io-functions-commons/dist/src/utils/middlewares/context_middleware";
-import { wrapRequestHandler } from "@pagopa/ts-commons/lib/request_middleware";
+import {
+  withRequestMiddlewares,
+  wrapRequestHandler
+} from "@pagopa/ts-commons/lib/request_middleware";
 import * as express from "express";
 import {
   IResponseErrorInternal,
+  IResponseErrorNotFound,
   IResponseSuccessJson,
-  ResponseSuccessJson
+  ResponseErrorInternal
 } from "@pagopa/ts-commons/lib/responses";
+import { Context } from "@azure/functions";
+import {
+  NonEmptyString,
+  OrganizationFiscalCode
+} from "@pagopa/ts-commons/lib/strings";
+import { ContextMiddleware } from "@pagopa/io-functions-commons/dist/src/utils/middlewares/context_middleware";
+import { RequiredParamMiddleware } from "@pagopa/io-functions-commons/dist/src/utils/middlewares/required_param";
+import { ClaimProcedureStatus } from "../generated/definitions/ClaimProcedureStatus";
 
-interface IMessage {
-  readonly message: string;
-}
-type GetStatusHandler = () => Promise<
-  IResponseSuccessJson<IMessage> | IResponseErrorInternal
+type Handler = (
+  context: Context,
+  organizationFiscalCode: OrganizationFiscalCode,
+  sourceId: NonEmptyString
+) => Promise<
+  | IResponseSuccessJson<ClaimProcedureStatus>
+  | IResponseErrorInternal
+  | IResponseErrorNotFound
 >;
 
-const GetStatusHandler = (): GetStatusHandler => (): Promise<
-  | IResponseSuccessJson<{
-      readonly message: string;
-    }>
-  | IResponseErrorInternal
-> => Promise.resolve(ResponseSuccessJson({ message: "Function is working" }));
+const createHandler = (): Handler => (
+  _context,
+  _organizationFiscalCode,
+  _sourceId
+): ReturnType<Handler> =>
+  Promise.resolve(ResponseErrorInternal("Handler to be implement"));
 
 const Handler = (): express.RequestHandler => {
-  const handler = GetStatusHandler();
-  return wrapRequestHandler(handler);
-};
-
-const setupExpress = (): express.Express => {
-  const app = express();
-  app.get(
-    "/api/v1/organization/:organizationFiscalCode/ownership-claims/:delegate_id",
-    Handler()
+  const handler = createHandler();
+  const middlewaresWrap = withRequestMiddlewares(
+    ContextMiddleware(),
+    RequiredParamMiddleware("organizationFiscalCode", OrganizationFiscalCode),
+    RequiredParamMiddleware("delegate_id", NonEmptyString)
   );
-  return app;
+  return wrapRequestHandler(middlewaresWrap(handler));
 };
 
-const appExpress = setupExpress();
-const azureFunctionHandler = createAzureFunctionHandler(appExpress);
-
-const httpStart = (context: Context, request: HttpRequest): void => {
-  context.log("HTTP START", request.url);
-  setAppContext(appExpress, context);
-  azureFunctionHandler(context);
-};
-
-export default httpStart;
+export default Handler;
