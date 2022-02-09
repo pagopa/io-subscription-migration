@@ -1,5 +1,12 @@
 import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
-import { Pool } from "pg";
+import { DatabaseError, Pool, PoolClient, QueryResult } from "pg";
+import * as TE from "fp-ts/lib/TaskEither";
+import { flow, pipe } from "fp-ts/lib/function";
+import {
+  IDbError,
+  toPostgreSQLError,
+  toPostgreSQLErrorMessage
+} from "../models/DomainErrors";
 import { IDecodableConfigPostgreSQL } from "./config";
 
 const pool = (
@@ -39,6 +46,18 @@ export const clientDB = (config: IDecodableConfigPostgreSQL): Pool =>
     {
       idleTimeout: config.DB_IDLE_TIMEOUT
     }
+  );
+
+export const queryDataTable = (
+  dbClient: PoolClient,
+  query: string
+): TE.TaskEither<IDbError, QueryResult> =>
+  pipe(
+    TE.tryCatch(
+      () => dbClient.query(query),
+      error => error as DatabaseError
+    ),
+    TE.mapLeft(flow(toPostgreSQLErrorMessage, toPostgreSQLError))
   );
 
 export default clientDB;

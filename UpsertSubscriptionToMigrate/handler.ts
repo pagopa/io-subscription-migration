@@ -3,7 +3,7 @@ import {
   ErrorResponse as ApimErrorResponse
 } from "@azure/arm-apimanagement";
 import { flow, pipe } from "fp-ts/lib/function";
-import { DatabaseError, Pool, PoolClient, QueryResult } from "pg";
+import { Pool, PoolClient, QueryResult } from "pg";
 import { readableReport } from "@pagopa/ts-commons/lib/reporters";
 import * as O from "fp-ts/lib/Option";
 import * as E from "fp-ts/lib/Either";
@@ -31,18 +31,16 @@ import {
   toApimSubError,
   IApimUserError,
   toApimUserError,
-  IDbError,
   DomainError,
   toString,
-  toPostgreSQLError,
-  toApimSubErrorMessage,
-  toPostgreSQLErrorMessage
+  toApimSubErrorMessage
 } from "../models/DomainErrors";
 
 import {
   trackProcessedServiceDocument,
   trackIgnoredIncomingDocument
 } from "../utils/tracking";
+import { queryDataTable } from "../utils/dbconnector";
 import { IncomingQueueItem } from "./types";
 
 // Incoming documents are expected to be of kind RetrievedService
@@ -153,18 +151,6 @@ export const mapDataToTableRow = (
   sourceSurname: apimData.apimUser.lastName,
   subscriptionId: retrievedDocument.serviceId
 });
-
-export const queryDataTable = (
-  dbClient: PoolClient,
-  query: string
-): TE.TaskEither<IDbError, QueryResult> =>
-  pipe(
-    TE.tryCatch(
-      () => dbClient.query(query),
-      error => error as DatabaseError
-    ),
-    TE.mapLeft(flow(toPostgreSQLErrorMessage, toPostgreSQLError))
-  );
 
 export const createUpsertSql = (dbConfig: IDecodableConfigPostgreSQL) => (
   data: MigrationRowDataTable,

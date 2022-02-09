@@ -92,7 +92,7 @@ definitions:
         type: integer
         format: int32
         default: 0
-      not_started:
+      initial:
         type: integer
         format: int32
         default: 0
@@ -103,7 +103,7 @@ definitions:
     required:
       - completed
       - failed
-      - not_started
+      - initial
       - processing
   ProblemJson:
     type: object
