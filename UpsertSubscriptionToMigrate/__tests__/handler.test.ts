@@ -54,11 +54,12 @@ const mockMigrationRowDataTable = {
   sourceSurname: "CognomeDelegato" as NonEmptyString,
   sourceEmail: "email@test.com" as EmailString
 };
+const mockApimSubscriptionGet = jest.fn(() =>
+  Promise.resolve(mockApimSubscriptionResponse)
+);
 const mockGetClient = () => ({
   subscription: {
-    get: jest
-      .fn()
-      .mockImplementation(() => Promise.resolve(mockApimSubscriptionResponse))
+    get: mockApimSubscriptionGet
   },
   user: {
     get: jest
@@ -217,6 +218,24 @@ describe("storeDocumentApimToDatabase", () => {
     if (isRight(res)) {
       expect(res.right).toHaveProperty("command", "INSERT");
       expect(res.right).toHaveProperty("rowCount", 1);
+    }
+  });
+
+  it("should ignore a Service without Subscription", async () => {
+    mockApimSubscriptionGet.mockImplementationOnce(() =>
+      Promise.reject({ statusCode: 404 })
+    );
+    const apimClient = (mockApimClient.getClient() as unknown) as ApiManagementClient;
+    const mockClientPool = await mockClient.connect();
+    const res = await storeDocumentApimToDatabase(
+      apimClient,
+      mockConfig as any,
+      mockClientPool,
+      mockTelemtryClient as any
+    )(mockDocuments[0] as any)();
+    expect(isRight(res)).toBe(true);
+    if (isRight(res)) {
+      expect(res.right).toBe(undefined);
     }
   });
 });

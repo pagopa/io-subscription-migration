@@ -186,6 +186,12 @@ export const createUpsertSql = (dbConfig: IDecodableConfigPostgreSQL) => (
     )
     .toQuery() as NonEmptyString;
 };
+
+// FIXME: refactor DomainError so that this check is stronger
+const isSubscriptionNotFound = (err: DomainError): boolean =>
+  err.kind === "apimsuberror" &&
+  err.message.startsWith("Subscription not found");
+
 export const storeDocumentApimToDatabase = (
   apimClient: ApiManagementClient,
   config: IConfig,
@@ -223,11 +229,30 @@ export const storeDocumentApimToDatabase = (
               )
             : // processing is successful, just ignore the document
               TE.of<DomainError, QueryResult | void>(
-                trackIgnoredIncomingDocument(telemetryClient)(retrievedDocument)
+                trackIgnoredIncomingDocument(telemetryClient)(
+                  retrievedDocument,
+                  "owner is an admin"
+                )
               )
         )
       )
-    )
+    ),
+    // check errors to see if we might fail or just ignore curretn document
+    TE.foldW(err => {
+      // There are Services in database that have no related Subscription.
+      // It's an inconsistent state and should not be present;
+      //  however, for Services of early days of IO it may happen as we still have Services created when IO was just a proof-of-concepts
+      // We choose to just skip such documents
+      if (isSubscriptionNotFound(err)) {
+        trackIgnoredIncomingDocument(telemetryClient)(
+          retrievedDocument,
+          "subsctiption not found"
+        );
+        return TE.of(void 0);
+      } else {
+        return TE.left(err);
+      }
+    }, TE.of)
   );
 
 export const createHandler = (
