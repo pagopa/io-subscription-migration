@@ -9,13 +9,14 @@ import {
   ApimUserResponse
 } from "./DomainApimResponse";
 
+export type OwnerData = t.TypeOf<typeof OwnerData>;
 export const OwnerData = t.intersection(
   [ApimSubscriptionResponse, ApimUserResponse],
   "OwnerData"
 );
-export type OwnerData = t.TypeOf<typeof OwnerData>;
 
-const MigrationRowDataTableR = t.interface({
+export type MigrationRowDataTable = t.TypeOf<typeof MigrationRowDataTable>;
+export const MigrationRowDataTable = t.interface({
   organizationFiscalCode: OrganizationFiscalCode,
   serviceName: t.string,
   serviceVersion: t.number,
@@ -25,12 +26,3 @@ const MigrationRowDataTableR = t.interface({
   sourceSurname: NonEmptyString,
   subscriptionId: NonEmptyString
 });
-const MigrationRowDataTableO = t.partial({});
-
-export const MigrationRowDataTable = t.exact(
-  t.intersection(
-    [MigrationRowDataTableR, MigrationRowDataTableO],
-    "MigrationRowDataTable"
-  )
-);
-export type MigrationRowDataTable = t.TypeOf<typeof MigrationRowDataTable>;

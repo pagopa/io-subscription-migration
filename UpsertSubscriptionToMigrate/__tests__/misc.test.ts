@@ -164,11 +164,11 @@ describe("ApimUserResponse", () => {
 describe("createUpsertSql", () => {
   it("should compose correct upsert sql", async () => {
     const config = {
-      DB_SCHEMA: "ServicesMigration",
-      DB_TABLE: "Services"
+      DB_SCHEMA: "SelfcareIOSubscriptionMigrations",
+      DB_TABLE: "migrations"
     } as IDecodableConfigPostgreSQL;
     const data = ({
-      subscriptionId: 1,
+      subscriptionId: "subId1",
       organizationFiscalCode: "12345678901",
       sourceId: "01EYNPZXQJF9A2DBTH5GYB951V",
       sourceName: "source name",
@@ -177,22 +177,30 @@ describe("createUpsertSql", () => {
       serviceVersion: 0,
       serviceName: "Service Test"
     } as unknown) as MigrationRowDataTable;
-    const expected = `
-    INSERT INTO "ServicesMigration"."Services"(
-        "subscriptionId", "organizationFiscalCode", "sourceId", "sourceName",
-        "sourceSurname", "sourceEmail", "serviceVersion", "serviceName")
-        VALUES ('1', '12345678901', '01EYNPZXQJF9A2DBTH5GYB951V', 'source name', 'source surname', 'source email', '0', 'Service Test')
-        ON CONFLICT ("subscriptionId")
-        DO UPDATE
-            SET "organizationFiscalCode" = "excluded"."organizationFiscalCode",
-            "serviceVersion" = "excluded"."serviceVersion",
-            "serviceName" = "excluded"."serviceName"
-            WHERE "ServicesMigration"."Services"."status" <> 'PENDING'
-            AND "ServicesMigration"."Services"."serviceVersion" < "excluded"."serviceVersion"
-    `;
+    const expected = `insert into "SelfcareIOSubscriptionMigrations"."migrations" ("organizationFiscalCode", "serviceName", "serviceVersion", "sourceEmail", "sourceId", "sourceName", "sourceSurname", "subscriptionId") values ('12345678901', 'Service Test', 0, 'source email', '01EYNPZXQJF9A2DBTH5GYB951V', 'source name', 'source surname', 'subId1') on conflict ("subscriptionId") do update set "organizationFiscalCode" = excluded."organizationFiscalCode", "serviceVersion" = excluded."serviceVersion", "serviceName" = excluded."serviceName" where "migrations"."status" < 'PENDING' and "migrations"."serviceVersion" < excluded."serviceVersion"`;
 
     const sql = createUpsertSql(config)(data);
+    expect(sql.trim()).toBe(expected.trim());
+  });
 
+  it("should escape single quotes", async () => {
+    const config = {
+      DB_SCHEMA: "SelfcareIOSubscriptionMigrations",
+      DB_TABLE: "migrations"
+    } as IDecodableConfigPostgreSQL;
+    const data = ({
+      subscriptionId: "subId2",
+      organizationFiscalCode: "12345678901",
+      sourceId: "01EYNPZXQJF9A2DBTH5GYB951V",
+      sourceName: "source name",
+      sourceSurname: "source surname",
+      sourceEmail: "l'email", // <-- single quote!
+      serviceVersion: 0,
+      serviceName: "Service Test"
+    } as unknown) as MigrationRowDataTable;
+    const expected = `insert into "SelfcareIOSubscriptionMigrations"."migrations" ("organizationFiscalCode", "serviceName", "serviceVersion", "sourceEmail", "sourceId", "sourceName", "sourceSurname", "subscriptionId") values ('12345678901', 'Service Test', 0, 'l''email', '01EYNPZXQJF9A2DBTH5GYB951V', 'source name', 'source surname', 'subId2') on conflict ("subscriptionId") do update set "organizationFiscalCode" = excluded."organizationFiscalCode", "serviceVersion" = excluded."serviceVersion", "serviceName" = excluded."serviceName" where "migrations"."status" < 'PENDING' and "migrations"."serviceVersion" < excluded."serviceVersion"`;
+
+    const sql = createUpsertSql(config)(data);
     expect(sql.trim()).toBe(expected.trim());
   });
 });
