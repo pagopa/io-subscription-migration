@@ -15,31 +15,6 @@ basePath: "/template"
 schemes:
   - https
 paths:
-  "/echo/{input}":
-    parameters:
-      - name: input
-        in: path
-        type: string
-        required: true
-        description: test input.
-    get:
-      operationId: echo
-      summary: Echo API
-      description: Some API description here.
-      responses:
-        "200":
-          description: Found.
-          schema:
-            "$ref": "#/definitions/Input"
-          examples:
-            application/json:
-              id: "10000AAAA"
-              output: "hello world !"
-        "401":
-          description: Unauthorized
-        "404":
-          description: Not found.
-      parameters: []
   /organizations/{organization_fiscal_code}/ownership-claims/{delegate_id}:
     get:
       operationId: getOwnershipClaimStatus
