@@ -1,3 +1,4 @@
+/* eslint-disable arrow-body-style */
 import {
   ApiManagementClient,
   ErrorResponse as ApimErrorResponse
@@ -13,6 +14,7 @@ import * as RA from "fp-ts/lib/ReadonlyArray";
 import { RetrievedService } from "@pagopa/io-functions-commons/dist/src/models/service";
 
 import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
+import knex from "knex";
 import { logError, withJsonInput } from "../utils/misc";
 import {
   IConfig,
@@ -170,19 +172,19 @@ export const createUpsertSql = (dbConfig: IDecodableConfigPostgreSQL) => (
   data: MigrationRowDataTable,
   excludeStatus: "PENDING" = "PENDING"
 ): NonEmptyString => {
-  const table = `"${dbConfig.DB_SCHEMA}"."${dbConfig.DB_TABLE}"`;
-  return `INSERT INTO ${table}(
-        "subscriptionId", "organizationFiscalCode", "sourceId", "sourceName",
-        "sourceSurname", "sourceEmail", "serviceVersion", "serviceName")
-        VALUES ('${data.subscriptionId}', '${data.organizationFiscalCode}', '${data.sourceId}', '${data.sourceName}', '${data.sourceSurname}', '${data.sourceEmail}', '${data.serviceVersion}', '${data.serviceName}')
-        ON CONFLICT ("subscriptionId")
-        DO UPDATE
-            SET "organizationFiscalCode" = "excluded"."organizationFiscalCode",
-            "serviceVersion" = "excluded"."serviceVersion",
-            "serviceName" = "excluded"."serviceName"
-            WHERE ${table}."status" <> '${excludeStatus}'
-            AND ${table}."serviceVersion" < "excluded"."serviceVersion"
-    ` as NonEmptyString;
+  return knex({
+    client: "pg"
+  })
+    .withSchema(dbConfig.DB_SCHEMA)
+    .table(dbConfig.DB_TABLE)
+    .insert(data)
+    .onConflict("subscriptionId")
+    .merge(["organizationFiscalCode", "serviceVersion", "serviceName"])
+    .where(`${dbConfig.DB_TABLE}.status`, "<", excludeStatus)
+    .and.whereRaw(
+      `"${dbConfig.DB_TABLE}"."serviceVersion" < excluded."serviceVersion"`
+    )
+    .toQuery() as NonEmptyString;
 };
 export const storeDocumentApimToDatabase = (
   apimClient: ApiManagementClient,
