@@ -2,13 +2,13 @@ import { Context } from "@azure/functions";
 import createAzureFunctionHandler from "@pagopa/express-azure-functions/dist/src/createAzureFunctionsHandler";
 import { setAppContext } from "@pagopa/io-functions-commons/dist/src/utils/middlewares/context_middleware";
 import * as express from "express";
-import Handler from "./handler";
+import ClaimProcedureStatusHandler from "./handler";
 
 const setupExpress = (): express.Express => {
   const app = express();
   app.get(
     "/api/v1/organizations/:organizationFiscalCode/ownership-claims/:delegate_id",
-    Handler()
+    ClaimProcedureStatusHandler()
   );
   return app;
 };

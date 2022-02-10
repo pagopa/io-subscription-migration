@@ -35,7 +35,7 @@ const createHandler = (): Handler => (
 ): ReturnType<Handler> =>
   Promise.resolve(ResponseErrorInternal("Handler to be implement"));
 
-const Handler = (): express.RequestHandler => {
+const ClaimProcedureStatusHandler = (): express.RequestHandler => {
   const handler = createHandler();
   const middlewaresWrap = withRequestMiddlewares(
     ContextMiddleware(),
@@ -45,4 +45,4 @@ const Handler = (): express.RequestHandler => {
   return wrapRequestHandler(middlewaresWrap(handler));
 };
 
-export default Handler;
+export default ClaimProcedureStatusHandler;
