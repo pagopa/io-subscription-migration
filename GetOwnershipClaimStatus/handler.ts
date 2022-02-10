@@ -1,4 +1,3 @@
-/* eslint-disable sonarjs/prefer-immediate-return */
 import {
   withRequestMiddlewares,
   wrapRequestHandler
@@ -20,6 +19,7 @@ import { ContextMiddleware } from "@pagopa/io-functions-commons/dist/src/utils/m
 import { RequiredParamMiddleware } from "@pagopa/io-functions-commons/dist/src/utils/middlewares/required_param";
 import * as t from "io-ts";
 import { NumberFromString } from "@pagopa/ts-commons/lib/numbers";
+import * as E from "fp-ts/Either";
 import * as TE from "fp-ts/TaskEither";
 import { flow, pipe } from "fp-ts/lib/function";
 import { DatabaseError, Pool } from "pg";
@@ -117,7 +117,7 @@ const createHandler = (config: IConfig, pool: Pool): Handler => async (
       organizationFiscalCode,
       sourceId
     ),
-    TE.mapLeft(() => ResponseErrorInternal("Errore interno")),
+    TE.mapLeft(errors => ResponseErrorInternal(E.toError(errors).message)),
     TE.chainW(processResponseFromResultSet),
     TE.toUnion
   )();
