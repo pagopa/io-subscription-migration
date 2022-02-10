@@ -1,4 +1,4 @@
-import { Context, HttpRequest } from "@azure/functions";
+import { Context } from "@azure/functions";
 import createAzureFunctionHandler from "@pagopa/express-azure-functions/dist/src/createAzureFunctionsHandler";
 import { setAppContext } from "@pagopa/io-functions-commons/dist/src/utils/middlewares/context_middleware";
 import * as express from "express";
@@ -16,8 +16,7 @@ const setupExpress = (): express.Express => {
 const appExpress = setupExpress();
 const azureFunctionHandler = createAzureFunctionHandler(appExpress);
 
-const httpStart = (context: Context, request: HttpRequest): void => {
-  context.log("HTTP START", request.url);
+const httpStart = (context: Context): void => {
   setAppContext(appExpress, context);
   azureFunctionHandler(context);
 };
