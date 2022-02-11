@@ -22,7 +22,7 @@ import { NumberFromString } from "@pagopa/ts-commons/lib/numbers";
 import * as E from "fp-ts/Either";
 import * as TE from "fp-ts/TaskEither";
 import { flow, pipe } from "fp-ts/lib/function";
-import { DatabaseError, Pool } from "pg";
+import { Pool } from "pg";
 import { ClaimProcedureStatus } from "../generated/definitions/ClaimProcedureStatus";
 import { IConfig, IDecodableConfigPostgreSQL } from "../utils/config";
 import { queryDataTable } from "../utils/db";
@@ -63,12 +63,7 @@ export const getStatusByOrganizationAndSourceId = (
   pipe(
     createSql(config)(organizationFiscalCode, sourceId),
     sql => queryDataTable(connect, sql),
-    TE.mapLeft(e =>
-      flow(
-        toPostgreSQLErrorMessage,
-        toPostgreSQLError
-      )((e as unknown) as DatabaseError)
-    )
+    TE.mapLeft(flow(toPostgreSQLErrorMessage, toPostgreSQLError))
   );
 
 export const processResponseFromResultSet = (
@@ -79,10 +74,9 @@ export const processResponseFromResultSet = (
 > =>
   pipe(
     resultSet,
-    TE.of,
-    TE.chainW(flow(ResultSet.decode, TE.fromEither)),
+    ResultSet.decode,
+    TE.fromEither,
     TE.mapLeft(() => ResponseErrorInternal("Errore on decode")),
-
     TE.map(({ rows }) => ({
       completed:
         rows.find(row => row.status.toLowerCase() === "completed")?.count ?? 0,
@@ -110,18 +104,16 @@ const createHandler = (config: IConfig, pool: Pool): Handler => async (
   context,
   organizationFiscalCode,
   sourceId
-): ReturnType<Handler> => {
-  context.log(`Starting Status for: ${organizationFiscalCode} ${sourceId}`);
-  return pipe(
+): ReturnType<Handler> =>
+  pipe(
     getStatusByOrganizationAndSourceId(config, pool)(
       organizationFiscalCode,
       sourceId
     ),
-    TE.mapLeft(errors => ResponseErrorInternal(E.toError(errors).message)),
+    TE.mapLeft(flow(E.toError, e => ResponseErrorInternal(e.message))),
     TE.chainW(processResponseFromResultSet),
     TE.toUnion
   )();
-};
 
 const ClaimProcedureStatusHandler = (
   config: IConfig,
