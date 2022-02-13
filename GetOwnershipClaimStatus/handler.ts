@@ -76,7 +76,7 @@ export const getStatusByOrganizationAndSourceId = (
   );
 
 /*
- * The function needs to procude a valid Response to the caller.
+ * The function needs to produce a valid Response to the caller.
  * ResultSet contains an array of rows grouped by status and a counter and we need to map to an Object
  */
 export const processResponseFromResultSet = (
