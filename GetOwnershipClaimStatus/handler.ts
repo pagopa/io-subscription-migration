@@ -22,6 +22,7 @@ import * as E from "fp-ts/Either";
 import * as TE from "fp-ts/TaskEither";
 import { flow, pipe } from "fp-ts/lib/function";
 import { Pool } from "pg";
+import knex from "knex";
 import { ClaimProcedureStatus } from "../generated/definitions/ClaimProcedureStatus";
 import { IConfig, IDecodableConfigPostgreSQL } from "../utils/config";
 import { queryDataTable } from "../utils/db";
@@ -54,10 +55,18 @@ export const createSql = (dbConfig: IDecodableConfigPostgreSQL) => (
   organizationFiscalCode: OrganizationFiscalCode,
   sourceId: NonEmptyString
 ): NonEmptyString =>
-  `SELECT status, count(status)
-	FROM "${dbConfig.DB_SCHEMA}"."${dbConfig.DB_TABLE}"
-	WHERE "organizationFiscalCode" = '${organizationFiscalCode}' and "sourceId" = '${sourceId}'
-	GROUP BY status` as NonEmptyString;
+  knex({
+    client: "pg"
+  })
+    .withSchema(dbConfig.DB_SCHEMA)
+    .table(dbConfig.DB_TABLE)
+    .select("status")
+    .count("status")
+    .from(dbConfig.DB_TABLE)
+    .where("organizationFiscalCode", "=", organizationFiscalCode)
+    .andWhere("sourceId", "=", sourceId)
+    .groupBy("status")
+    .toQuery() as NonEmptyString;
 
 /*
  * Query the database and return a ResultSet or an Error of type IDbError
