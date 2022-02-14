@@ -29,7 +29,6 @@ paths:
           type: string
           minLength: 1
           required: true
-          format: OrganizationFiscalCode
       responses:
         '200':
           description: Success
@@ -49,6 +48,7 @@ paths:
 parameters:
   OrganizationFiscalCode:
     name: 'organization_fiscal_code'
+    format: OrganizationFiscalCode
     type: string
     in: path
     x-import: '@pagopa/ts-commons/lib/strings'
