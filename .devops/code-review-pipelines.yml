@@ -44,6 +44,13 @@ stages:
             yarn lint
           displayName: 'Lint'
 
+      - job: lint_api
+        steps:
+          - template: templates/node-job-setup/template.yaml@pagopaCommons
+          - bash: |
+              npx oval validate -p openapi/index.yaml
+            displayName: 'Validate openAPI'
+
       - job: danger
         condition: 
           and(
