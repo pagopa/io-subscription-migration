@@ -254,12 +254,9 @@ describe("queryDataTable", () => {
 	"subscriptionId", "organizationFiscalCode", "sourceId", "sourceName", "sourceSurname", "sourceEmail", status, note, "serviceVersion", "serviceName")
 	VALUES ('01EYNQ0864HKYR1Q9PXPJ18W7G', '111', '111', 'Test', 'Test', 'Test', 'test', 'test', 1, 'test');`
     )();
-
     expect(isLeft(res)).toBe(true);
     if (isLeft(res)) {
-      expect(res.left.message).toEqual(
-        expect.stringContaining("Duplicate Primary Key")
-      );
+      expect(res.left.code).toEqual(expect.stringContaining("23505"));
     }
   });
 });

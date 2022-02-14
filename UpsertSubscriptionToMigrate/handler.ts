@@ -35,7 +35,8 @@ import {
   toApimUserError,
   DomainError,
   toString,
-  toApimSubErrorMessage
+  toApimSubErrorMessage,
+  toPostgreSQLError
 } from "../models/DomainErrors";
 
 import {
@@ -198,7 +199,7 @@ export const storeDocumentApimToDatabase = (
         //   otherwise we just ignore the document
         // This because migration are meant to work only from a Delegate to its Organization,
         //   not to migrate subscriptions between organizations
-        TE.chain(apimUser =>
+        TE.chainW(apimUser =>
           ApimDelegateUserResponse.is(apimUser)
             ? // continue processing incoming document
               pipe(
@@ -211,7 +212,8 @@ export const storeDocumentApimToDatabase = (
                     retrievedDocument
                   );
                   return res;
-                }
+                },
+                TE.mapLeft(err => toPostgreSQLError(err.message))
               )
             : // processing is successful, just ignore the document
               TE.of<DomainError, QueryResult | void>(

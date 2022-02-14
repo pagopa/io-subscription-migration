@@ -63,8 +63,8 @@ export const createSql = (dbConfig: IDecodableConfigPostgreSQL) => (
     .select("status")
     .count("status")
     .from(dbConfig.DB_TABLE)
-    .where("organizationFiscalCode", "=", organizationFiscalCode)
-    .andWhere("sourceId", "=", sourceId)
+    .where({ organizationFiscalCode })
+    .and.where({ sourceId })
     .groupBy("status")
     .toQuery() as NonEmptyString;
 
