@@ -13,6 +13,8 @@ host: api.cd.italia.it
 basePath: "/template"
 schemes:
   - https
+security:
+  - SubscriptionKey: []
 paths:
   /organizations/{organization_fiscal_code}/ownership-claims/{delegate_id}:
     get:
@@ -121,3 +123,8 @@ definitions:
           An absolute URI that identifies the specific occurrence of the
           problem.
           It may or may not yield further information if dereferenced.
+securityDefinitions:
+  SubscriptionKey:
+    type: apiKey
+    name: X-Functions-Key
+    in: header
