@@ -29,6 +29,7 @@ paths:
           type: string
           minLength: 1
           required: true
+          format: OrganizationFiscalCode
       responses:
         '200':
           description: Success
