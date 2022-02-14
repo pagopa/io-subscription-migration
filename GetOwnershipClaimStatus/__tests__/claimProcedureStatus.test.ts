@@ -18,14 +18,16 @@ describe("ClaimProcedureStatus Type Check", () => {
   });
 
   it("should be a valid status with an empty response", () => {
-    const queryRes = ClaimProcedureStatus.decode({});
+    const queryRes = ClaimProcedureStatus.decode({ status: {} });
     expect(E.isRight(queryRes)).toBe(true);
     if (E.isRight(queryRes)) {
       expect(queryRes.right).toEqual({
-        completed: 0,
-        failed: 0,
-        initial: 0,
-        processing: 0
+        status: {
+          completed: 0,
+          failed: 0,
+          initial: 0,
+          processing: 0
+        }
       });
     }
   });

@@ -37,12 +37,7 @@ paths:
         '200':
           description: Success
           schema:
-            type: object
-            properties:
-              status:
-                $ref: '#/definitions/ClaimProcedureStatus'
-            required:
-              - items
+            $ref: '#/definitions/ClaimProcedureStatus'
         '400':
           description: Bad Request
         '401':
@@ -57,28 +52,33 @@ paths:
 definitions:
   ClaimProcedureStatus:
     type: object
-    properties:
-      completed:
-        type: integer
-        format: int32
-        default: 0
-      failed:
-        type: integer
-        format: int32
-        default: 0
-      initial:
-        type: integer
-        format: int32
-        default: 0
-      processing:
-        type: integer
-        format: int32
-        default: 0
-    required:
-      - completed
-      - failed
-      - initial
-      - processing
+    properties: 
+      status: 
+        type: object
+        properties:
+          completed:
+            type: integer
+            format: int32
+            default: 0
+          failed:
+            type: integer
+            format: int32
+            default: 0
+          initial:
+            type: integer
+            format: int32
+            default: 0
+          processing:
+            type: integer
+            format: int32
+            default: 0
+        required:
+          - completed
+          - failed
+          - initial
+          - processing
+    required: 
+      - status
   ProblemJson:
     type: object
     properties:
