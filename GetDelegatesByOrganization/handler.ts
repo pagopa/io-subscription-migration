@@ -8,10 +8,10 @@ import { wrapRequestHandler } from "@pagopa/ts-commons/lib/request_middleware";
 import * as express from "express";
 import { pipe } from "fp-ts/lib/function";
 import * as TE from "fp-ts/lib/TaskEither";
-import { OrganizationDelegates } from "../generated/definitions/OrganizationDelegates";
+import { OrganizationResponseDelegates } from "../generated/definitions/OrganizationResponseDelegates";
 
 type GetDelegatesByOrganizationResponseHandler = () => Promise<
-  | IResponseSuccessJson<{ readonly data: OrganizationDelegates }>
+  | IResponseSuccessJson<OrganizationResponseDelegates>
   | IResponseErrorInternal
   | IResponseErrorNotFound
 >;
@@ -21,10 +21,9 @@ const createHandler = (): GetDelegatesByOrganizationResponseHandler => (): Retur
   GetDelegatesByOrganizationResponseHandler
 > =>
   pipe(
-    TE.throwError<
-      string,
-      IResponseSuccessJson<{ readonly data: OrganizationDelegates }>
-    >("To be Implementend"),
+    TE.throwError<string, IResponseSuccessJson<OrganizationResponseDelegates>>(
+      "To be Implementend"
+    ),
     TE.mapLeft(ResponseErrorInternal),
     TE.toUnion
   )();
