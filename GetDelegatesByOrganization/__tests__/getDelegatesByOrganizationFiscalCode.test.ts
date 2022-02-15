@@ -29,7 +29,7 @@ const mockQueryResult = {
       sourceId: "123",
       sourceName: "sourceName",
       sourceSurname: "sourceLastName",
-      subscriptionCounter: 1
+      subscriptionCounter: "1"
     }
   ]
 } as QueryResult;
@@ -54,7 +54,7 @@ describe("Select SQL for Delegates", () => {
             sourceId: "123",
             sourceName: "sourceName",
             sourceSurname: "sourceLastName",
-            subscriptionCounter: 1
+            subscriptionCounter: "1"
           }
         ]
       });

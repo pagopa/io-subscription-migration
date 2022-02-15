@@ -24,6 +24,7 @@ import * as t from "io-ts";
 import { ContextMiddleware } from "@pagopa/io-functions-commons/dist/src/utils/middlewares/context_middleware";
 import { RequiredParamMiddleware } from "@pagopa/io-functions-commons/dist/src/utils/middlewares/required_param";
 import { Context } from "@azure/functions";
+import { NumberFromString } from "@pagopa/ts-commons/lib/numbers";
 import { OrganizationDelegates } from "../generated/definitions/OrganizationDelegates";
 import { IConfig, IDecodableConfigPostgreSQL } from "../utils/config";
 import {
@@ -38,7 +39,7 @@ export const DelegateResultRow = t.interface({
   sourceId: t.string,
   sourceName: t.string,
   sourceSurname: t.string,
-  subscriptionCounter: t.number
+  subscriptionCounter: NumberFromString
 });
 export type DelegateResultRow = t.TypeOf<typeof DelegateResultRow>;
 
@@ -66,7 +67,7 @@ export const createSqlDelegates = (dbConfig: IDecodableConfigPostgreSQL) => (
     .withSchema(dbConfig.DB_SCHEMA)
     .table(dbConfig.DB_TABLE)
     .select(["sourceId", "sourceName", "sourceSurname", "sourceEmail"])
-    .count("subscriptionId")
+    .count("subscriptionId as subscriptionCounter")
     .from(dbConfig.DB_TABLE)
     .where({ organizationFiscalCode })
     .groupBy(["sourceId", "sourceName", "sourceSurname", "sourceEmail"])
