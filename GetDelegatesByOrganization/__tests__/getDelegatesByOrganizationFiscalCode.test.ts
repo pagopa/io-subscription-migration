@@ -38,7 +38,7 @@ const mockPool = {
 };
 
 describe("Select SQL for Delegates", () => {
-  it("should generate a valid SQL", async () => {
+  it("should return a valid data from query", async () => {
     const res = await getDelegatesByOrganizationFiscalCode(
       mockDBConfig as IConfig,
       (mockPool as unknown) as Pool
