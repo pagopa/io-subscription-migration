@@ -6,9 +6,9 @@ describe("Array Delegates", () => {
     const delegates: OrganizationDelegates = [
       {
         sourceId: "123",
-        firstName: "TestName",
-        lastName: "TestSurname",
-        email: "test@email.com" as Email
+        sourceName: "TestName",
+        sourceSurname: "TestSurname",
+        sourceEmail: "test@email.com" as Email
       }
     ];
 
