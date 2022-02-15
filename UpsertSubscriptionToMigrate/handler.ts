@@ -4,7 +4,7 @@ import {
   ErrorResponse as ApimErrorResponse
 } from "@azure/arm-apimanagement";
 import { flow, pipe } from "fp-ts/lib/function";
-import { DatabaseError, Pool, QueryResult } from "pg";
+import { Pool, QueryResult } from "pg";
 import { readableReport } from "@pagopa/ts-commons/lib/reporters";
 import * as O from "fp-ts/lib/Option";
 import * as E from "fp-ts/lib/Either";
@@ -33,18 +33,17 @@ import {
   toApimSubError,
   IApimUserError,
   toApimUserError,
-  IDbError,
   DomainError,
   toString,
-  toPostgreSQLError,
   toApimSubErrorMessage,
-  toPostgreSQLErrorMessage
+  toPostgreSQLError
 } from "../models/DomainErrors";
 
 import {
   trackProcessedServiceDocument,
   trackIgnoredIncomingDocument
 } from "../utils/tracking";
+import { queryDataTable } from "../utils/db";
 import { IncomingQueueItem } from "./types";
 
 // Incoming documents are expected to be of kind RetrievedService
@@ -156,18 +155,6 @@ export const mapDataToTableRow = (
   subscriptionId: retrievedDocument.serviceId
 });
 
-export const queryDataTable = (
-  pool: Pool,
-  query: string
-): TE.TaskEither<IDbError, QueryResult> =>
-  pipe(
-    TE.tryCatch(
-      () => pool.query(query),
-      error => error as DatabaseError
-    ),
-    TE.mapLeft(flow(toPostgreSQLErrorMessage, toPostgreSQLError))
-  );
-
 export const createUpsertSql = (dbConfig: IDecodableConfigPostgreSQL) => (
   data: MigrationRowDataTable,
   excludeStatus: "PENDING" = "PENDING"
@@ -212,7 +199,7 @@ export const storeDocumentApimToDatabase = (
         //   otherwise we just ignore the document
         // This because migration are meant to work only from a Delegate to its Organization,
         //   not to migrate subscriptions between organizations
-        TE.chain(apimUser =>
+        TE.chainW(apimUser =>
           ApimDelegateUserResponse.is(apimUser)
             ? // continue processing incoming document
               pipe(
@@ -225,7 +212,8 @@ export const storeDocumentApimToDatabase = (
                     retrievedDocument
                   );
                   return res;
-                }
+                },
+                TE.mapLeft(err => toPostgreSQLError(err.message))
               )
             : // processing is successful, just ignore the document
               TE.of<DomainError, QueryResult | void>(

@@ -49,6 +49,7 @@ paths:
 parameters:
   OrganizationFiscalCode:
     name: 'organization_fiscal_code'
+    format: OrganizationFiscalCode
     type: string
     in: path
     x-import: '@pagopa/ts-commons/lib/strings'

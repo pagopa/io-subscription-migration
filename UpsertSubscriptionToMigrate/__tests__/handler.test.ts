@@ -3,7 +3,6 @@ import {
   getApimOwnerBySubscriptionId,
   getApimUserBySubscription,
   mapDataToTableRow,
-  queryDataTable,
   storeDocumentApimToDatabase
 } from "../handler";
 import {
@@ -20,6 +19,7 @@ import { ApiManagementClient } from "@azure/arm-apimanagement";
 import { QueryResult } from "pg";
 import { RetrievedService } from "@pagopa/io-functions-commons/dist/src/models/service";
 import { NonNegativeInteger } from "@pagopa/ts-commons/lib/numbers";
+import { queryDataTable } from "../../utils/db";
 
 const mockSubscriptionId = "00000000000000000000000000" as NonEmptyString;
 const mockOwnerId = "/subscriptions/subid/resourceGroups/resourceGroupName/providers/Microsoft.ApiManagement/service/apimServiceName/users/00000000000000000000000000" as NonEmptyString;
@@ -254,12 +254,9 @@ describe("queryDataTable", () => {
 	"subscriptionId", "organizationFiscalCode", "sourceId", "sourceName", "sourceSurname", "sourceEmail", status, note, "serviceVersion", "serviceName")
 	VALUES ('01EYNQ0864HKYR1Q9PXPJ18W7G', '111', '111', 'Test', 'Test', 'Test', 'test', 'test', 1, 'test');`
     )();
-
     expect(isLeft(res)).toBe(true);
     if (isLeft(res)) {
-      expect(res.left.message).toEqual(
-        expect.stringContaining("Duplicate Primary Key")
-      );
+      expect(res.left.code).toEqual(expect.stringContaining("23505"));
     }
   });
 });

@@ -6,7 +6,7 @@ import {
 } from "@pagopa/io-functions-commons/dist/src/utils/healthcheck";
 import { pipe } from "fp-ts/lib/function";
 import { toError } from "fp-ts/lib/Either";
-import getPool from "../utils/dbconnector";
+import getPool from "../utils/db";
 import { IDecodableConfigPostgreSQL } from "../utils/config";
 
 const postgresHealthCheck = (

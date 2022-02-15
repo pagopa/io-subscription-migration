@@ -1,4 +1,6 @@
-import { Pool } from "pg";
+import { pipe } from "fp-ts/lib/function";
+import { DatabaseError, Pool, QueryResult } from "pg";
+import * as TE from "fp-ts/TaskEither";
 import { IDecodableConfigPostgreSQL } from "./config";
 
 // eslint-disable-next-line functional/no-let
@@ -18,5 +20,16 @@ export const getPool = (config: IDecodableConfigPostgreSQL): Pool => {
   }
   return singletonPool;
 };
+
+export const queryDataTable = (
+  pool: Pool,
+  query: string
+): TE.TaskEither<DatabaseError, QueryResult> =>
+  pipe(
+    TE.tryCatch(
+      () => pool.query(query),
+      error => error as DatabaseError
+    )
+  );
 
 export default getPool;
