@@ -8,7 +8,8 @@ describe("Array Delegates", () => {
         sourceId: "123",
         sourceName: "TestName",
         sourceSurname: "TestSurname",
-        sourceEmail: "test@email.com" as Email
+        sourceEmail: "test@email.com" as Email,
+        subscriptionCounter: 1
       }
     ];
 
