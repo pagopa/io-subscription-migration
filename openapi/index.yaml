@@ -113,17 +113,20 @@ definitions:
     properties:
       sourceId:
         type: string
-      firstName:
+      sourceName:
         type: string
-      lastName:
+      sourceSurname:
         type: string
-      email:
+      sourceEmail:
         $ref: '#/definitions/Email'
+      subscriptionCounter:
+        type: number
     required:
       - sourceId
-      - firstName
-      - lastName
-      - email
+      - sourceName
+      - sourceSurname
+      - sourceEmail
+      - subscriptionCounter
   Email:
     format: EmailString
     type: string
