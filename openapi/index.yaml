@@ -45,7 +45,7 @@ paths:
           description: Generic server error
           schema:
             $ref: '#/definitions/ProblemJson'
-  /organizations/{organization_fiscal_code}:
+  /organizations/{organization_fiscal_code}/delegates:
     get:
       operationId: getDelegatesByOrganization
       summary: Retrieve all delegates on behalf of an Organization
