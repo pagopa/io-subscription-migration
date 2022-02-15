@@ -2,7 +2,8 @@ import {
   IResponseErrorInternal,
   IResponseErrorNotFound,
   IResponseSuccessJson,
-  ResponseErrorInternal
+  ResponseErrorInternal,
+  ResponseSuccessJson
 } from "@pagopa/ts-commons/lib/responses";
 import { wrapRequestHandler } from "@pagopa/ts-commons/lib/request_middleware";
 import * as express from "express";
@@ -71,6 +72,20 @@ export const getDelegatesByOrganizationFiscalCode = (
     createSqlDelegates(config)(organizationFiscalCode),
     sql => queryDataTable(connect, sql),
     TE.mapLeft(flow(toPostgreSQLErrorMessage, toPostgreSQLError))
+  );
+
+export const processResponseFromDelegatesResultSet = (
+  resultSet: DelegatesResultSet
+): TE.TaskEither<
+  IResponseErrorInternal | IResponseErrorNotFound,
+  IResponseSuccessJson<{ readonly data: OrganizationDelegates }>
+> =>
+  pipe(
+    resultSet,
+    DelegatesResultSet.decode,
+    TE.fromEither,
+    TE.mapLeft(() => ResponseErrorInternal("Error on decode")),
+    TE.map(data => ResponseSuccessJson({ data: data.rows }))
   );
 
 // TO DO: This is the Handler and it's to be implemented!
