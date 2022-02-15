@@ -6,15 +6,39 @@ import {
 } from "@pagopa/ts-commons/lib/responses";
 import { wrapRequestHandler } from "@pagopa/ts-commons/lib/request_middleware";
 import * as express from "express";
-import { pipe } from "fp-ts/lib/function";
+import { flow, pipe } from "fp-ts/lib/function";
 import * as TE from "fp-ts/lib/TaskEither";
 import {
+  EmailString,
   NonEmptyString,
   OrganizationFiscalCode
 } from "@pagopa/ts-commons/lib/strings";
 import knex from "knex";
+import { Pool } from "pg";
+import * as t from "io-ts";
 import { OrganizationDelegates } from "../generated/definitions/OrganizationDelegates";
-import { IDecodableConfigPostgreSQL } from "../utils/config";
+import { IConfig, IDecodableConfigPostgreSQL } from "../utils/config";
+import {
+  IDbError,
+  toPostgreSQLError,
+  toPostgreSQLErrorMessage
+} from "../models/DomainErrors";
+import { queryDataTable } from "../utils/db";
+
+export const DelegateResultRow = t.interface({
+  sourceEmail: EmailString,
+  sourceId: t.string,
+  sourceName: t.string,
+  sourceSurname: t.string,
+  subscriptionCounter: t.number
+});
+export type DelegateResultRow = t.TypeOf<typeof DelegateResultRow>;
+
+export const DelegatesResultSet = t.interface({
+  rowCount: t.number,
+  rows: t.readonlyArray(DelegateResultRow)
+});
+export type DelegatesResultSet = t.TypeOf<typeof DelegatesResultSet>;
 
 type GetDelegatesByOrganizationResponseHandler = () => Promise<
   | IResponseSuccessJson<{ readonly data: OrganizationDelegates }>
@@ -36,6 +60,18 @@ export const createSqlDelegates = (dbConfig: IDecodableConfigPostgreSQL) => (
     .where({ organizationFiscalCode })
     .groupBy(["sourceId", "sourceName", "sourceSurname", "sourceEmail"])
     .toQuery() as NonEmptyString;
+
+export const getDelegatesByOrganizationFiscalCode = (
+  config: IConfig,
+  connect: Pool
+) => (
+  organizationFiscalCode: OrganizationFiscalCode
+): TE.TaskEither<IDbError, DelegatesResultSet> =>
+  pipe(
+    createSqlDelegates(config)(organizationFiscalCode),
+    sql => queryDataTable(connect, sql),
+    TE.mapLeft(flow(toPostgreSQLErrorMessage, toPostgreSQLError))
+  );
 
 // TO DO: This is the Handler and it's to be implemented!
 const createHandler = (): GetDelegatesByOrganizationResponseHandler => (): ReturnType<
