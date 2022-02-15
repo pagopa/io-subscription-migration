@@ -5,9 +5,13 @@ import {
   ResponseErrorInternal,
   ResponseSuccessJson
 } from "@pagopa/ts-commons/lib/responses";
-import { wrapRequestHandler } from "@pagopa/ts-commons/lib/request_middleware";
+import {
+  withRequestMiddlewares,
+  wrapRequestHandler
+} from "@pagopa/ts-commons/lib/request_middleware";
 import * as express from "express";
 import { flow, pipe } from "fp-ts/lib/function";
+import * as E from "fp-ts/Either";
 import * as TE from "fp-ts/lib/TaskEither";
 import {
   EmailString,
@@ -17,6 +21,9 @@ import {
 import knex from "knex";
 import { Pool } from "pg";
 import * as t from "io-ts";
+import { ContextMiddleware } from "@pagopa/io-functions-commons/dist/src/utils/middlewares/context_middleware";
+import { RequiredParamMiddleware } from "@pagopa/io-functions-commons/dist/src/utils/middlewares/required_param";
+import { Context } from "@azure/functions";
 import { OrganizationDelegates } from "../generated/definitions/OrganizationDelegates";
 import { IConfig, IDecodableConfigPostgreSQL } from "../utils/config";
 import {
@@ -41,7 +48,10 @@ export const DelegatesResultSet = t.interface({
 });
 export type DelegatesResultSet = t.TypeOf<typeof DelegatesResultSet>;
 
-type GetDelegatesByOrganizationResponseHandler = () => Promise<
+type GetDelegatesByOrganizationResponseHandler = (
+  context: Context,
+  organizationFiscalCode: OrganizationFiscalCode
+) => Promise<
   | IResponseSuccessJson<{ readonly data: OrganizationDelegates }>
   | IResponseErrorInternal
   | IResponseErrorNotFound
@@ -88,22 +98,30 @@ export const processResponseFromDelegatesResultSet = (
     TE.map(data => ResponseSuccessJson({ data: data.rows }))
   );
 
-// TO DO: This is the Handler and it's to be implemented!
-const createHandler = (): GetDelegatesByOrganizationResponseHandler => (): ReturnType<
-  GetDelegatesByOrganizationResponseHandler
-> =>
+const createHandler = (
+  config: IConfig,
+  pool: Pool
+): GetDelegatesByOrganizationResponseHandler => async (
+  _context,
+  organizationFiscalCode
+): ReturnType<GetDelegatesByOrganizationResponseHandler> =>
   pipe(
-    TE.throwError<
-      string,
-      IResponseSuccessJson<{ readonly data: OrganizationDelegates }>
-    >("To be Implementend"),
-    TE.mapLeft(ResponseErrorInternal),
+    getDelegatesByOrganizationFiscalCode(config, pool)(organizationFiscalCode),
+    TE.mapLeft(flow(E.toError, e => ResponseErrorInternal(e.message))),
+    TE.chainW(processResponseFromDelegatesResultSet),
     TE.toUnion
   )();
 
-const GetDelegatesByOrganizationHandler = (): express.RequestHandler => {
-  const handler = createHandler();
-  return wrapRequestHandler(handler);
+const GetDelegatesByOrganizationHandler = (
+  config: IConfig,
+  client: Pool
+): express.RequestHandler => {
+  const handler = createHandler(config, client);
+  const middlewaresWrap = withRequestMiddlewares(
+    ContextMiddleware(),
+    RequiredParamMiddleware("organizationFiscalCode", OrganizationFiscalCode)
+  );
+  return wrapRequestHandler(middlewaresWrap(handler));
 };
 
 export default GetDelegatesByOrganizationHandler;
