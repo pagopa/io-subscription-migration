@@ -2,8 +2,7 @@
 import {
   IResponseErrorInternal,
   IResponseSuccessJson,
-  ResponseErrorInternal,
-  ResponseSuccessJson
+  ResponseErrorInternal
 } from "@pagopa/ts-commons/lib/responses";
 import {
   withRequestMiddlewares,
@@ -21,18 +20,10 @@ import {
 } from "@pagopa/ts-commons/lib/strings";
 import { Pool, QueryResult, QueryResultRow } from "pg";
 import { Context } from "@azure/functions";
-import { ApiManagementClient } from "@azure/arm-apimanagement";
 import { knex } from "knex";
+import { IConfig, IDecodableConfigPostgreSQL } from "../utils/config";
 import {
-  IConfig,
-  IDecodableConfigAPIM,
-  IDecodableConfigPostgreSQL
-} from "../utils/config";
-import { ApimOrganizationUserResponse } from "../models/DomainApimResponse";
-import {
-  IApimUserError,
   IDbError,
-  toApimUserError,
   toPostgreSQLError,
   toPostgreSQLErrorMessage
 } from "../models/DomainErrors";
@@ -79,11 +70,10 @@ export const updateSubscriptionsByOrganizationFiscalCodeAndSourceId = (
 
 export const organizationMessageToQueue = (context: Context) => (
   organizationFiscalCode: OrganizationFiscalCode,
-  sourceId: NonEmptyString,
-  targetId: NonEmptyString
+  sourceId: NonEmptyString
 ): E.Either<boolean, boolean> =>
   pipe(
-    { organizationFiscalCode, sourceId, targetId },
+    { organizationFiscalCode, sourceId },
     OrganizationQueueItem.decode,
     E.mapLeft(e => false),
     E.chain(
@@ -94,34 +84,6 @@ export const organizationMessageToQueue = (context: Context) => (
           context.bindings.incomingSubscriptions = validMessage;
         },
         () => E.of(true)
-      )
-    )
-  );
-export const getTargetIdFromAPIM = (
-  config: IDecodableConfigAPIM,
-  apimClient: ApiManagementClient,
-  targetId: NonEmptyString
-): TE.TaskEither<IApimUserError, ApimOrganizationUserResponse> =>
-  pipe(
-    TE.tryCatch(
-      () =>
-        apimClient.user.get(
-          config.APIM_RESOURCE_GROUP,
-          config.APIM_SERVICE_NAME,
-          targetId
-        ),
-      () =>
-        toApimUserError(
-          "The provided subscription identifier is malformed or invalid or occur an Authetication Error."
-        )
-    ),
-    TE.chain(
-      flow(
-        ApimOrganizationUserResponse.decode,
-        TE.fromEither,
-        TE.mapLeft(() =>
-          toApimUserError("Invalid Apim Organization Response Decode.")
-        )
       )
     )
   );

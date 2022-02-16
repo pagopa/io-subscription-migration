@@ -8,7 +8,6 @@ import * as E from "fp-ts/lib/Either";
 
 const organizationFiscalCode = "00000000000" as OrganizationFiscalCode;
 const sourceId = "11111111111111111111111111" as NonEmptyString;
-const targetId = "00000000000000000000000000" as NonEmptyString;
 
 const mockBindindigs = jest.fn(() => Promise.resolve(void 0));
 const mockContext = ({
@@ -18,8 +17,7 @@ describe("organizationMessageToQueue", () => {
   it("should create a valid message in queue", () => {
     const res = organizationMessageToQueue(mockContext)(
       organizationFiscalCode,
-      sourceId,
-      targetId
+      sourceId
     );
     if (E.isRight(res)) {
       expect(res.right).toBe(true);
@@ -28,8 +26,7 @@ describe("organizationMessageToQueue", () => {
   it("should not create a valid message in queue", () => {
     const res = organizationMessageToQueue(mockContext)(
       (0 as unknown) as OrganizationFiscalCode,
-      sourceId,
-      targetId
+      sourceId
     );
     if (E.isLeft(res)) {
       expect(res.left).toBe(false);

@@ -8,6 +8,5 @@ import * as t from "io-ts";
 export type OrganizationQueueItem = t.TypeOf<typeof OrganizationQueueItem>;
 export const OrganizationQueueItem = t.interface({
   organizationFiscalCode: OrganizationFiscalCode,
-  sourceId: NonEmptyString,
-  targetId: NonEmptyString
+  sourceId: NonEmptyString
 });
