@@ -1,8 +1,8 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import {
   IResponseErrorInternal,
   IResponseSuccessJson,
-  ResponseErrorInternal
+  ResponseErrorInternal,
+  ResponseSuccessJson
 } from "@pagopa/ts-commons/lib/responses";
 import {
   withRequestMiddlewares,
@@ -75,7 +75,7 @@ export const organizationMessageToQueue = (context: Context) => (
   pipe(
     { organizationFiscalCode, sourceId },
     OrganizationQueueItem.decode,
-    E.mapLeft(e => false),
+    E.mapLeft(_ => false),
     E.chain(
       flow(
         JSON.stringify,
@@ -88,15 +88,26 @@ export const organizationMessageToQueue = (context: Context) => (
     )
   );
 
-// TO DO: This is the Handler and it's to be implemented!
 const createHandler = (config: IConfig, pool: Pool): Handler => (
-  _context,
+  context,
   organizationFiscalCode,
   delegateId
 ): ReturnType<Handler> =>
   pipe(
-    TE.throwError<string, IResponseSuccessJson<void>>("To be Implementend"),
-    TE.mapLeft(ResponseErrorInternal),
+    updateSubscriptionsByOrganizationFiscalCodeAndSourceId(config, pool)(
+      organizationFiscalCode,
+      delegateId
+    ),
+    TE.mapLeft(E.toError),
+    TE.chain(_ =>
+      pipe(
+        organizationMessageToQueue(context)(organizationFiscalCode, delegateId),
+        E.mapLeft(E.toError),
+        TE.fromEither
+      )
+    ),
+    TE.mapLeft(e => ResponseErrorInternal(`Errore: ${e.message}`)),
+    TE.map(_ => ResponseSuccessJson(void 0)),
     TE.toUnion
   )();
 
