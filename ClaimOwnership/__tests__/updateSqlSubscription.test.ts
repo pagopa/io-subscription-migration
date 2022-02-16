@@ -20,7 +20,6 @@ describe("UpdateSqlSubscription", () => {
       "01234567890" as OrganizationFiscalCode,
       "123" as NonEmptyString
     );
-    console.log(updateQuery);
     expect(updateQuery).toBe(
       `update "Schema"."Table" set "status" = 'PROCESSING' where "organizationFiscalCode" = '01234567890' and "sourceId" = '123' and "status" != 'COMPLETED'`
     );
