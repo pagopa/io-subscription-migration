@@ -26,10 +26,7 @@ import {
   IDecodableConfigAPIM,
   IDecodableConfigPostgreSQL
 } from "../utils/config";
-import {
-  ApimSubscriptionResponse,
-  ApimUserResponse
-} from "../models/DomainApimResponse";
+import { ApimOrganizationUserResponse } from "../models/DomainApimResponse";
 import {
   IApimUserError,
   IDbError,
@@ -47,7 +44,6 @@ type Handler = (
   delegateId: NonEmptyString
 ) => Promise<IResponseSuccessJson<void> | IResponseErrorInternal>;
 
-// TO DO: This is the function update status on database
 export const updateSqlSubscription = (dbConfig: IDecodableConfigPostgreSQL) => (
   organizationFiscalCode: OrganizationFiscalCode,
   sourceId: NonEmptyString
@@ -84,16 +80,33 @@ export const organizationMessageToQueue = (
   message: OrganizationQueueItem
 ): Error => new Error("To be implemented");
 
-// TO DO: This is the function to get targetID from APIM
 export const getTargetIdFromAPIM = (
   config: IDecodableConfigAPIM,
   apimClient: ApiManagementClient,
-  apimSubscriptionResponse: ApimSubscriptionResponse
-): TE.TaskEither<IApimUserError, ApimUserResponse> =>
+  targetId: NonEmptyString
+): TE.TaskEither<IApimUserError, ApimOrganizationUserResponse> =>
   pipe(
-    TE.throwError<string, ApimUserResponse>("To be Implementend"),
-    x => x,
-    TE.mapLeft(toApimUserError)
+    TE.tryCatch(
+      () =>
+        apimClient.user.get(
+          config.APIM_RESOURCE_GROUP,
+          config.APIM_SERVICE_NAME,
+          targetId
+        ),
+      () =>
+        toApimUserError(
+          "The provided subscription identifier is malformed or invalid or occur an Authetication Error."
+        )
+    ),
+    TE.chain(
+      flow(
+        ApimOrganizationUserResponse.decode,
+        TE.fromEither,
+        TE.mapLeft(() =>
+          toApimUserError("Invalid Apim Organization Response Decode.")
+        )
+      )
+    )
   );
 
 // TO DO: This is the Handler and it's to be implemented!
