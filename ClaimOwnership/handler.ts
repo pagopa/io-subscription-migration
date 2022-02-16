@@ -20,6 +20,7 @@ import {
 import { Pool } from "pg";
 import { Context } from "@azure/functions";
 import { ApiManagementClient } from "@azure/arm-apimanagement";
+import { knex } from "knex";
 import {
   IConfig,
   IDecodableConfigAPIM,
@@ -30,6 +31,8 @@ import {
   ApimUserResponse
 } from "../models/DomainApimResponse";
 import { IApimUserError, toApimUserError } from "../models/DomainErrors";
+import { SubscriptionStatus } from "../GetOwnershipClaimStatus/handler";
+import { OrganizationQueueItem } from "./types";
 
 type Handler = (
   context: Context,
@@ -39,12 +42,27 @@ type Handler = (
 
 // TO DO: This is the function update status on database
 export const updateSqlSubscription = (dbConfig: IDecodableConfigPostgreSQL) => (
-  organizationFiscalCode: OrganizationFiscalCode
-): NonEmptyString | Error => new Error("To be implemented");
+  organizationFiscalCode: OrganizationFiscalCode,
+  delegateId: NonEmptyString
+): NonEmptyString =>
+  knex({
+    client: "pg"
+  })
+    .withSchema(dbConfig.DB_SCHEMA)
+    .table(dbConfig.DB_TABLE)
+    .where({ organizationFiscalCode })
+    .where({ sourceId: delegateId })
+    .where("status", "!=", SubscriptionStatus.COMPLETED)
+    .update({
+      status: SubscriptionStatus.PROCESSING
+    })
+    .from(dbConfig.DB_TABLE)
+    .toQuery() as NonEmptyString;
 
 // TO DO: This is the function to write the message on the Queue
-export const organizationMessageToQueue = (): Error =>
-  new Error("To be implemented");
+export const organizationMessageToQueue = (
+  message: OrganizationQueueItem
+): Error => new Error("To be implemented");
 
 // TO DO: This is the function to get targetID from APIM
 export const getTargetIdFromAPIM = (
