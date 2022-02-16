@@ -2,7 +2,8 @@
 import {
   IResponseErrorInternal,
   IResponseSuccessJson,
-  ResponseErrorInternal
+  ResponseErrorInternal,
+  ResponseSuccessJson
 } from "@pagopa/ts-commons/lib/responses";
 import {
   withRequestMiddlewares,
@@ -10,6 +11,7 @@ import {
 } from "@pagopa/ts-commons/lib/request_middleware";
 import * as express from "express";
 import { flow, pipe } from "fp-ts/lib/function";
+import * as E from "fp-ts/lib/Either";
 import * as TE from "fp-ts/lib/TaskEither";
 import { ContextMiddleware } from "@pagopa/io-functions-commons/dist/src/utils/middlewares/context_middleware";
 import { RequiredParamMiddleware } from "@pagopa/io-functions-commons/dist/src/utils/middlewares/required_param";
@@ -75,11 +77,26 @@ export const updateSubscriptionsByOrganizationFiscalCodeAndSourceId = (
     TE.mapLeft(flow(toPostgreSQLErrorMessage, toPostgreSQLError))
   );
 
-// TO DO: This is the function to write the message on the Queue
-export const organizationMessageToQueue = (
-  message: OrganizationQueueItem
-): Error => new Error("To be implemented");
-
+export const organizationMessageToQueue = (context: Context) => (
+  organizationFiscalCode: OrganizationFiscalCode,
+  sourceId: NonEmptyString,
+  targetId: NonEmptyString
+): E.Either<boolean, boolean> =>
+  pipe(
+    { organizationFiscalCode, sourceId, targetId },
+    OrganizationQueueItem.decode,
+    E.mapLeft(e => false),
+    E.chain(
+      flow(
+        JSON.stringify,
+        validMessage => {
+          // eslint-disable-next-line functional/immutable-data
+          context.bindings.incomingSubscriptions = validMessage;
+        },
+        () => E.of(true)
+      )
+    )
+  );
 export const getTargetIdFromAPIM = (
   config: IDecodableConfigAPIM,
   apimClient: ApiManagementClient,
