@@ -1,0 +1,25 @@
+{
+  "bindings": [
+    {
+      "authLevel": "function",
+      "type": "httpTrigger",
+      "direction": "in",
+      "name": "req",
+      "methods": ["post"],
+      "route": "api/v1/organizations/{organizationFiscalCode}/{delegate_id}"
+    },
+    {
+      "type": "http",
+      "direction": "out",
+      "name": "res"
+    },
+    {
+      "queueName": "%QUEUE_ORGANIZATION_TO_MIGRATE%",
+      "connection": "INTERNAL_STORAGE_CONNECTION_STRING",
+      "name": "organizationToMigrate",
+      "type": "queue",
+      "direction": "out"
+    }
+  ],
+  "scriptFile": "../dist/ClaimOwnership/index.js"
+}
