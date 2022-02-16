@@ -9,7 +9,7 @@ import {
   wrapRequestHandler
 } from "@pagopa/ts-commons/lib/request_middleware";
 import * as express from "express";
-import { pipe } from "fp-ts/lib/function";
+import { flow, pipe } from "fp-ts/lib/function";
 import * as TE from "fp-ts/lib/TaskEither";
 import { ContextMiddleware } from "@pagopa/io-functions-commons/dist/src/utils/middlewares/context_middleware";
 import { RequiredParamMiddleware } from "@pagopa/io-functions-commons/dist/src/utils/middlewares/required_param";
@@ -17,7 +17,7 @@ import {
   NonEmptyString,
   OrganizationFiscalCode
 } from "@pagopa/ts-commons/lib/strings";
-import { Pool } from "pg";
+import { Pool, QueryResult, QueryResultRow } from "pg";
 import { Context } from "@azure/functions";
 import { ApiManagementClient } from "@azure/arm-apimanagement";
 import { knex } from "knex";
@@ -30,8 +30,15 @@ import {
   ApimSubscriptionResponse,
   ApimUserResponse
 } from "../models/DomainApimResponse";
-import { IApimUserError, toApimUserError } from "../models/DomainErrors";
+import {
+  IApimUserError,
+  IDbError,
+  toApimUserError,
+  toPostgreSQLError,
+  toPostgreSQLErrorMessage
+} from "../models/DomainErrors";
 import { SubscriptionStatus } from "../GetOwnershipClaimStatus/handler";
+import { queryDataTable } from "../utils/db";
 import { OrganizationQueueItem } from "./types";
 
 type Handler = (
@@ -43,7 +50,7 @@ type Handler = (
 // TO DO: This is the function update status on database
 export const updateSqlSubscription = (dbConfig: IDecodableConfigPostgreSQL) => (
   organizationFiscalCode: OrganizationFiscalCode,
-  delegateId: NonEmptyString
+  sourceId: NonEmptyString
 ): NonEmptyString =>
   knex({
     client: "pg"
@@ -51,13 +58,26 @@ export const updateSqlSubscription = (dbConfig: IDecodableConfigPostgreSQL) => (
     .withSchema(dbConfig.DB_SCHEMA)
     .table(dbConfig.DB_TABLE)
     .where({ organizationFiscalCode })
-    .where({ sourceId: delegateId })
+    .where({ sourceId })
     .where("status", "!=", SubscriptionStatus.COMPLETED)
     .update({
       status: SubscriptionStatus.PROCESSING
     })
     .from(dbConfig.DB_TABLE)
     .toQuery() as NonEmptyString;
+
+export const updateSubscriptionsByOrganizationFiscalCodeAndSourceId = (
+  config: IConfig,
+  connect: Pool
+) => (
+  organizationFiscalCode: OrganizationFiscalCode,
+  sourceId: NonEmptyString
+): TE.TaskEither<IDbError, QueryResult<QueryResultRow>> =>
+  pipe(
+    updateSqlSubscription(config)(organizationFiscalCode, sourceId),
+    sql => queryDataTable(connect, sql),
+    TE.mapLeft(flow(toPostgreSQLErrorMessage, toPostgreSQLError))
+  );
 
 // TO DO: This is the function to write the message on the Queue
 export const organizationMessageToQueue = (
