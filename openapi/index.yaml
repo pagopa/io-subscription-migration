@@ -58,7 +58,7 @@ paths:
         '200':
           description: Success
           schema:
-            $ref: '#/definitions/OrganizationDelegates'
+            $ref: '#/definitions/OrganizationResponseDelegates'
         '400':
           description: Bad Request
         '401':
@@ -113,21 +113,31 @@ definitions:
     properties:
       sourceId:
         type: string
-      firstName:
+      sourceName:
         type: string
-      lastName:
+      sourceSurname:
         type: string
-      email:
+      sourceEmail:
         $ref: '#/definitions/Email'
+      subscriptionCounter:
+        type: number
     required:
       - sourceId
-      - firstName
-      - lastName
-      - email
+      - sourceName
+      - sourceSurname
+      - sourceEmail
+      - subscriptionCounter
   Email:
     format: EmailString
     type: string
     x-import: '@pagopa/ts-commons/lib/strings'
+  OrganizationResponseDelegates:
+    type: object
+    properties:
+      delegates:
+        $ref: '#/definitions/OrganizationDelegates'
+    required:
+      - delegates
   OrganizationDelegates:
     type: array
     items:
