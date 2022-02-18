@@ -1,3 +1,4 @@
+/* eslint-disable extra-rules/no-commented-out-code */
 import {
   IResponseErrorInternal,
   IResponseSuccessJson,
@@ -10,7 +11,6 @@ import {
 } from "@pagopa/ts-commons/lib/request_middleware";
 import * as express from "express";
 import { flow, pipe } from "fp-ts/lib/function";
-import * as E from "fp-ts/lib/Either";
 import * as TE from "fp-ts/lib/TaskEither";
 import { ContextMiddleware } from "@pagopa/io-functions-commons/dist/src/utils/middlewares/context_middleware";
 import { RequiredParamMiddleware } from "@pagopa/io-functions-commons/dist/src/utils/middlewares/required_param";
@@ -29,6 +29,7 @@ import {
 } from "../models/DomainErrors";
 import { SubscriptionStatus } from "../GetOwnershipClaimStatus/handler";
 import { queryDataTable } from "../utils/db";
+
 import { OrganizationQueueItem } from "./types";
 
 type Handler = (
@@ -71,21 +72,16 @@ export const updateSubscriptionsByOrganizationFiscalCodeAndSourceId = (
 export const organizationMessageToQueue = (context: Context) => (
   organizationFiscalCode: OrganizationFiscalCode,
   sourceId: NonEmptyString
-): E.Either<boolean, boolean> =>
+): void =>
   pipe(
     { organizationFiscalCode, sourceId },
-    OrganizationQueueItem.decode,
-    E.mapLeft(_ => false),
-    E.chain(
-      flow(
-        JSON.stringify,
-        validMessage => {
-          // eslint-disable-next-line functional/immutable-data
-          context.bindings.incomingSubscriptions = validMessage;
-        },
-        () => E.of(true)
-      )
-    )
+    OrganizationQueueItem.encode,
+
+    JSON.stringify,
+    validMessage => {
+      // eslint-disable-next-line functional/immutable-data
+      context.bindings.incomingSubscriptions = validMessage;
+    }
   );
 
 const createHandler = (config: IConfig, pool: Pool): Handler => (
@@ -98,15 +94,12 @@ const createHandler = (config: IConfig, pool: Pool): Handler => (
       organizationFiscalCode,
       delegateId
     ),
-    TE.mapLeft(E.toError),
-    TE.chain(_ =>
-      pipe(
-        organizationMessageToQueue(context)(organizationFiscalCode, delegateId),
-        E.mapLeft(E.toError),
-        TE.fromEither
-      )
-    ),
-    TE.mapLeft(e => ResponseErrorInternal(`Errore: ${e.message}`)),
+    TE.mapLeft(e => ResponseErrorInternal(`Error on ${e.message}`)),
+    () =>
+      TE.of(
+        organizationMessageToQueue(context)(organizationFiscalCode, delegateId)
+      ),
+
     TE.map(_ => ResponseSuccessJson(void 0)),
     TE.toUnion
   )();
