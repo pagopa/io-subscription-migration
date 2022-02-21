@@ -25,13 +25,39 @@ export const updateSubscriptionStatusToDatabase = (
 
 export const updateApimSubscription = (
   _config: IDecodableConfigAPIM,
-  _apimClient: ApiManagementClient,
+  _apimClient: ApiManagementClient
+) => (
   _subscriptionId: NonEmptyString,
   _targetId: NonEmptyString
 ): TE.TaskEither<unknown, unknown> => pipe(TE.throwError("To Be implemented"));
 
 export const createHandler = (
-  _config: IConfig,
-  _apimClient: ApiManagementClient
+  config: IConfig,
+  apimClient: ApiManagementClient
 ): Parameters<typeof withJsonInput>[0] =>
-  withJsonInput(async (_context, _item): Promise<void> => void 0);
+  withJsonInput(
+    async (_context, item): Promise<void> =>
+      pipe(
+        // Need to define a type for Queue Item
+        TE.of(
+          item as {
+            readonly subscriptionId: NonEmptyString;
+            readonly targetId: NonEmptyString;
+          }
+        ),
+        // Todo: Refactor with a Queue Item and Decode it to check for the right value
+        TE.chain(subscriptionMessage =>
+          pipe(
+            updateApimSubscription(config, apimClient)(
+              subscriptionMessage.subscriptionId,
+              subscriptionMessage.targetId
+            )
+            // Todo: After update Apim, update Database
+          )
+        ),
+        TE.map(_ => void 0),
+        TE.getOrElse(err => {
+          throw err;
+        })
+      )()
+  );
