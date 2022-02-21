@@ -30,7 +30,7 @@ import {
 import { SubscriptionStatus } from "../GetOwnershipClaimStatus/handler";
 import { queryDataTable } from "../utils/db";
 
-import { OrganizationQueueItem } from "./types";
+import { ClaimOrganizationSubscriptions } from "./types";
 
 type Handler = (
   context: Context,
@@ -80,7 +80,7 @@ export const organizationMessageToQueue = (context: Context) => (
 ): void =>
   pipe(
     { organizationFiscalCode, sourceId },
-    OrganizationQueueItem.encode,
+    ClaimOrganizationSubscriptions.encode,
 
     JSON.stringify,
     validMessage => {
