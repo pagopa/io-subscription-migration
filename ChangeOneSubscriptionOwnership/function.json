@@ -8,5 +8,6 @@
       "direction": "in"
     }
   ],
-  "scriptFile": "../dist/ChangeOneSubscriptionOwnership/index.js"
+  "scriptFile": "../dist/ChangeOneSubscriptionOwnership/index.js",
+  "disabled": true
 }
