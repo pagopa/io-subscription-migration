@@ -74,20 +74,23 @@ export const updateSubscriptionsByOrganizationFiscalCodeAndSourceId = (
     TE.mapLeft(flow(toPostgreSQLErrorMessage, toPostgreSQLError))
   );
 
-export const organizationMessageToQueue = (context: Context) => (
+export const organizationMessageToQueue = (
   organizationFiscalCode: OrganizationFiscalCode,
   sourceId: NonEmptyString
-): void =>
+): string =>
   pipe(
     { organizationFiscalCode, sourceId },
     ClaimOrganizationSubscriptions.encode,
-
-    JSON.stringify,
-    validMessage => {
-      // eslint-disable-next-line functional/immutable-data
-      context.bindings.incomingSubscriptions = validMessage;
-    }
+    JSON.stringify
   );
+
+export const writeMessageToQueue = (context: Context) => (
+  message: string
+): void => {
+  // eslint-disable-next-line functional/immutable-data
+  context.bindings.incomingSubscriptions = message;
+  return void 0;
+};
 
 const createHandler = (config: IConfig, pool: Pool): Handler => (
   context,
@@ -102,9 +105,10 @@ const createHandler = (config: IConfig, pool: Pool): Handler => (
     TE.mapLeft(e => ResponseErrorInternal(`Error on ${e.message}`)),
     () =>
       TE.of(
-        organizationMessageToQueue(context)(organizationFiscalCode, delegateId)
+        writeMessageToQueue(context)(
+          organizationMessageToQueue(organizationFiscalCode, delegateId)
+        )
       ),
-
     TE.map(_ => ResponseSuccessJson(void 0)),
     TE.toUnion
   )();
