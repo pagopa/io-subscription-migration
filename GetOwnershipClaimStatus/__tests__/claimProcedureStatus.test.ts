@@ -1,11 +1,12 @@
 import { ClaimProcedureStatus } from "../../generated/definitions/ClaimProcedureStatus";
-import { createSql, processResponseFromResultSet, ResultSet } from "../handler";
+import { createSql, processResponseFromResultSet } from "../handler";
 import * as E from "fp-ts/lib/Either";
 import { IDecodableConfigPostgreSQL } from "../../utils/config";
 import {
   NonEmptyString,
   OrganizationFiscalCode
 } from "@pagopa/ts-commons/lib/strings";
+import { ResultSet } from "../../utils/db";
 
 const mockStatus = {
   completed: 1,
