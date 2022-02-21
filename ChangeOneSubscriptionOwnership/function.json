@@ -1,0 +1,12 @@
+{
+  "bindings": [
+    {
+      "queueName": "%QUEUE_SUBSCRIPTION_TO_MIGRATE%",
+      "connection": "INTERNAL_STORAGE_CONNECTION_STRING",
+      "name": "subscriptionToMigrate",
+      "type": "queueTrigger",
+      "direction": "in"
+    }
+  ],
+  "scriptFile": "../dist/ChangeOneSubscriptionOwnership/index.js"
+}
