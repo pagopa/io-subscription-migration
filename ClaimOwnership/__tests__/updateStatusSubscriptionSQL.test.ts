@@ -1,4 +1,4 @@
-import { updateSqlSubscription } from "../handler";
+import { updateStatusSubscriptionSQL } from "../handler";
 import {
   NonEmptyString,
   OrganizationFiscalCode
@@ -16,7 +16,7 @@ const mockDBConfig = {
 };
 describe("UpdateSqlSubscription", () => {
   it("should create a valid Update SQL Query", () => {
-    const updateQuery = updateSqlSubscription(mockDBConfig)(
+    const updateQuery = updateStatusSubscriptionSQL(mockDBConfig)(
       "01234567890" as OrganizationFiscalCode,
       "123" as NonEmptyString
     );

@@ -38,7 +38,12 @@ type Handler = (
   delegateId: NonEmptyString
 ) => Promise<IResponseSuccessJson<void> | IResponseErrorInternal>;
 
-export const updateSqlSubscription = (dbConfig: IDecodableConfigPostgreSQL) => (
+/*
+ * The purpose of this function is to update the status of a subscription to PROCESSING for every subscription that isn't COMPLETED yet.
+ */
+export const updateStatusSubscriptionSQL = (
+  dbConfig: IDecodableConfigPostgreSQL
+) => (
   organizationFiscalCode: OrganizationFiscalCode,
   sourceId: NonEmptyString
 ): NonEmptyString =>
@@ -64,7 +69,7 @@ export const updateSubscriptionsByOrganizationFiscalCodeAndSourceId = (
   sourceId: NonEmptyString
 ): TE.TaskEither<IDbError, QueryResult<QueryResultRow>> =>
   pipe(
-    updateSqlSubscription(config)(organizationFiscalCode, sourceId),
+    updateStatusSubscriptionSQL(config)(organizationFiscalCode, sourceId),
     sql => queryDataTable(connect, sql),
     TE.mapLeft(flow(toPostgreSQLErrorMessage, toPostgreSQLError))
   );
