@@ -17,7 +17,7 @@ import {
   toPostgreSQLErrorMessage
 } from "../models/DomainErrors";
 import { queryDataTable, ResultSet } from "../utils/db";
-import { SubscriptionQueueItem } from "./types";
+import { ClaimSubscriptionItem } from "./types";
 
 /*
  * The purpose of this function is to generate a valid Update Query Statement
@@ -70,7 +70,7 @@ export const createHandler = (
     async (_context, subscriptionMessage): Promise<void> =>
       pipe(
         subscriptionMessage,
-        SubscriptionQueueItem.decode,
+        ClaimSubscriptionItem.decode,
         TE.fromEither,
         TE.chain(subscriptionToMigrate =>
           pipe(
