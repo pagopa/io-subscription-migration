@@ -1,6 +1,10 @@
-import { ApiManagementClient } from "@azure/arm-apimanagement";
+import {
+  ApiManagementClient,
+  SubscriptionUpdateResponse
+} from "@azure/arm-apimanagement";
 import { flow, pipe } from "fp-ts/lib/function";
 import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
+import * as E from "fp-ts/lib/Either";
 import * as TE from "fp-ts/lib/TaskEither";
 import { Pool } from "pg";
 import knex from "knex";
@@ -12,7 +16,9 @@ import {
 import { withJsonInput } from "../utils/misc";
 import { SubscriptionStatus } from "../GetOwnershipClaimStatus/handler";
 import {
+  IApimUserError,
   IDbError,
+  toApimUserError,
   toPostgreSQLError,
   toPostgreSQLErrorMessage
 } from "../models/DomainErrors";
@@ -55,12 +61,40 @@ export const updateSubscriptionStatusToDatabase = (
   );
 
 export const updateApimSubscription = (
-  _config: IDecodableConfigAPIM,
-  _apimClient: ApiManagementClient
+  config: IDecodableConfigAPIM,
+  apimClient: ApiManagementClient
 ) => (
-  _subscriptionId: NonEmptyString,
-  _targetId: NonEmptyString
-): TE.TaskEither<unknown, unknown> => pipe(TE.throwError("To Be implemented"));
+  subscriptionId: NonEmptyString,
+  targetId: NonEmptyString
+): TE.TaskEither<IApimUserError, SubscriptionUpdateResponse> =>
+  pipe(
+    TE.tryCatch(
+      () =>
+        apimClient.subscription.update(
+          config.APIM_RESOURCE_GROUP,
+          config.APIM_SERVICE_NAME,
+          subscriptionId,
+          "*",
+          {
+            ownerId: targetId
+          }
+        ),
+      e => toApimUserError((e as Error).message)
+    ),
+    TE.map(res => {
+      // eslint-disable-next-line no-console
+      console.log(res);
+      return res;
+    }),
+    TE.chain(
+      flow(
+        TE.fromPredicate(
+          res => res.ownerId !== undefined && res.ownerId !== targetId,
+          () => toApimUserError("Error on update")
+        )
+      )
+    )
+  );
 
 export const createHandler = (
   config: IConfig,
@@ -72,12 +106,14 @@ export const createHandler = (
         subscriptionMessage,
         ClaimSubscriptionItem.decode,
         TE.fromEither,
+        TE.mapLeft(() => E.toError("Error on decode")),
         TE.chain(subscriptionToMigrate =>
           pipe(
             updateApimSubscription(config, apimClient)(
               subscriptionToMigrate.subscriptionId,
               subscriptionToMigrate.targetId
-            )
+            ),
+            TE.mapLeft(E.toError)
             // Todo: After update Apim, update Database
           )
         ),
