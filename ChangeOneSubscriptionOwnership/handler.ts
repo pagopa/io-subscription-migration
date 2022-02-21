@@ -10,6 +10,7 @@ import {
 } from "../utils/config";
 import { withJsonInput } from "../utils/misc";
 import { SubscriptionStatus } from "../GetOwnershipClaimStatus/handler";
+import { SubscriptionQueueItem } from "./types";
 
 export const updateSql = (_dbConfig: IDecodableConfigPostgreSQL) => (
   _subscriptionId: NonEmptyString,
@@ -36,21 +37,16 @@ export const createHandler = (
   apimClient: ApiManagementClient
 ): Parameters<typeof withJsonInput>[0] =>
   withJsonInput(
-    async (_context, item): Promise<void> =>
+    async (_context, subscriptionMessage): Promise<void> =>
       pipe(
-        // Need to define a type for Queue Item
-        TE.of(
-          item as {
-            readonly subscriptionId: NonEmptyString;
-            readonly targetId: NonEmptyString;
-          }
-        ),
-        // Todo: Refactor with a Queue Item and Decode it to check for the right value
-        TE.chain(subscriptionMessage =>
+        subscriptionMessage,
+        SubscriptionQueueItem.decode,
+        TE.fromEither,
+        TE.chain(subscriptionToMigrate =>
           pipe(
             updateApimSubscription(config, apimClient)(
-              subscriptionMessage.subscriptionId,
-              subscriptionMessage.targetId
+              subscriptionToMigrate.subscriptionId,
+              subscriptionToMigrate.targetId
             )
             // Todo: After update Apim, update Database
           )
