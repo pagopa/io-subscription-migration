@@ -1,8 +1,9 @@
 import { ApiManagementClient } from "@azure/arm-apimanagement";
-import { pipe } from "fp-ts/lib/function";
+import { flow, pipe } from "fp-ts/lib/function";
 import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
 import * as TE from "fp-ts/lib/TaskEither";
 import { Pool } from "pg";
+import knex from "knex";
 import {
   IConfig,
   IDecodableConfigAPIM,
@@ -10,19 +11,48 @@ import {
 } from "../utils/config";
 import { withJsonInput } from "../utils/misc";
 import { SubscriptionStatus } from "../GetOwnershipClaimStatus/handler";
+import {
+  IDbError,
+  toPostgreSQLError,
+  toPostgreSQLErrorMessage
+} from "../models/DomainErrors";
+import { queryDataTable, ResultSet } from "../utils/db";
 import { SubscriptionQueueItem } from "./types";
 
-export const updateSql = (_dbConfig: IDecodableConfigPostgreSQL) => (
-  _subscriptionId: NonEmptyString,
-  _status: SubscriptionStatus
-): NonEmptyString => "Need to return a valid SQL" as NonEmptyString;
+/*
+ * The purpose of this function is to generate a valid Update Query Statement
+ */
+export const getUpdateSubscriptionSql = (
+  dbConfig: IDecodableConfigPostgreSQL
+) => (
+  subscriptionId: NonEmptyString,
+  status: SubscriptionStatus
+): NonEmptyString =>
+  knex({
+    client: "pg"
+  })
+    .withSchema(dbConfig.DB_SCHEMA)
+    .table(dbConfig.DB_TABLE)
+    .update("status", status)
+    .from(dbConfig.DB_TABLE)
+    .where({ subscriptionId })
+    .toQuery() as NonEmptyString;
 
+/*
+ * The purpose of this function is to update a single subscription inside DB from a valid Update Query Statement
+ */
 export const updateSubscriptionStatusToDatabase = (
-  _apimClient: ApiManagementClient,
-  _config: IConfig,
-  _pool: Pool
-) => (_updateQuery: NonEmptyString): TE.TaskEither<unknown, unknown> =>
-  pipe(TE.throwError("Need to update Subscription Status on Database"));
+  config: IConfig,
+  connect: Pool
+) => (subscriptionId: NonEmptyString): TE.TaskEither<IDbError, ResultSet> =>
+  pipe(
+    getUpdateSubscriptionSql(config)(
+      subscriptionId,
+      SubscriptionStatus.COMPLETED
+    ),
+    sql => queryDataTable(connect, sql),
+    TE.mapLeft(flow(toPostgreSQLErrorMessage, toPostgreSQLError))
+  );
 
 export const updateApimSubscription = (
   _config: IDecodableConfigAPIM,
