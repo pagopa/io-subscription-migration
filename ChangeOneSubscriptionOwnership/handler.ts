@@ -60,6 +60,10 @@ export const updateSubscriptionStatusToDatabase = (
     TE.mapLeft(flow(toPostgreSQLErrorMessage, toPostgreSQLError))
   );
 
+/*
+ * The function purpose is to update the subscription owner id to APIM
+ * We need the complete target id PATH: /subscriptions/XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX/resourceGroups/XXXXXXX/providers/Microsoft.ApiManagement/service/XXXXXXX/users/users/XXXXXXXXXXXXXXXXXXXXXXXXXX
+ */
 export const updateApimSubscription = (
   config: IDecodableConfigAPIM,
   apimClient: ApiManagementClient
@@ -89,6 +93,7 @@ export const updateApimSubscription = (
     TE.chain(
       flow(
         TE.fromPredicate(
+          // Check if ownerId is available and it's the same of targetId
           res => res.ownerId !== undefined && res.ownerId !== targetId,
           () => toApimUserError("Error on update")
         )
@@ -98,26 +103,41 @@ export const updateApimSubscription = (
 
 export const createHandler = (
   config: IConfig,
-  apimClient: ApiManagementClient
+  apimClient: ApiManagementClient,
+  pool: Pool
 ): Parameters<typeof withJsonInput>[0] =>
   withJsonInput(
     async (_context, subscriptionMessage): Promise<void> =>
+      // ToDo: Refactor mapLeft errors
       pipe(
         subscriptionMessage,
         ClaimSubscriptionItem.decode,
         TE.fromEither,
         TE.mapLeft(() => E.toError("Error on decode")),
+        // Update subscription on APIM
         TE.chain(subscriptionToMigrate =>
           pipe(
             updateApimSubscription(config, apimClient)(
               subscriptionToMigrate.subscriptionId,
               subscriptionToMigrate.targetId
             ),
-            TE.mapLeft(E.toError)
-            // Todo: After update Apim, update Database
+            TE.mapLeft(E.toError),
+            TE.map(() => subscriptionToMigrate) // Return subscriptionToMigrate
           )
         ),
+        // Update subscription status on Database
+        TE.chain(subscriptionToMigrate =>
+          pipe(
+            updateSubscriptionStatusToDatabase(
+              config,
+              pool
+            )(subscriptionToMigrate.subscriptionId),
+            TE.mapLeft(E.toError)
+          )
+        ),
+        // We don't want to return anything
         TE.map(_ => void 0),
+        // If we get an error we want the handler fail
         TE.getOrElse(err => {
           throw err;
         })
