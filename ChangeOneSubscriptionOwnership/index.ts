@@ -1,9 +1,10 @@
 import { getConfigOrThrow } from "../utils/config";
 import { getApiClient } from "../utils/apim";
+import getPool from "../utils/db";
 import { createHandler } from "./handler";
 
 const config = getConfigOrThrow();
-
+const client = getPool(config);
 // Get APIM Client
 const apimClient = getApiClient(
   {
@@ -14,6 +15,6 @@ const apimClient = getApiClient(
   config.APIM_SUBSCRIPTION_ID
 );
 
-const handleServicesChange = createHandler(config, apimClient);
+const handleServicesChange = createHandler(config, apimClient, client);
 
 export default handleServicesChange;
