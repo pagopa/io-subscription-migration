@@ -1,16 +1,16 @@
 {
   "bindings": [
      {
-      "queueName": "%QUEUE_ORGANIZATION_TO_MIGRATE%",
+      "queueName": "%QUEUE_ADD_SERVICE_TO_MIGRATIONS%",
       "connection": "INTERNAL_STORAGE_CONNECTION_STRING",
-      "name": "subscriptionToMigrate",
+      "name": "add-service-jobs",
       "type": "queueTrigger",
       "direction": "in"
     },
     {
       "queueName": "%QUEUE_SUBSCRIPTION_TO_MIGRATE%",
       "connection": "INTERNAL_STORAGE_CONNECTION_STRING",
-      "name": "subscriptionToMigrate",
+      "name": "migrate-one-subscription-jobs",
       "type": "queue",
       "direction": "out"
     }
