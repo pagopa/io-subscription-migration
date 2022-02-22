@@ -1,4 +1,4 @@
-import { updateSubscriptionsByOrganizationFiscalCodeAndSourceId } from "../handler";
+import { updateSubscriptionStatus } from "../handler";
 import {
   NonEmptyString,
   OrganizationFiscalCode
@@ -6,6 +6,7 @@ import {
 import { Pool, QueryResult } from "pg";
 import { IConfig } from "../../utils/config";
 import * as E from "fp-ts/lib/Either";
+import { SubscriptionStatus } from "../../GetOwnershipClaimStatus/handler";
 
 const mockDBConfig = {
   DB_HOST: "localhost" as NonEmptyString,
@@ -26,10 +27,11 @@ const mockPool = ({
 } as unknown) as Pool;
 describe("UpdateSqlSubscription", () => {
   it("should create a valid Update SQL Query", async () => {
-    const res = await updateSubscriptionsByOrganizationFiscalCodeAndSourceId(
-      mockDBConfig,
-      mockPool
-    )("01234567890" as OrganizationFiscalCode, "123" as NonEmptyString)();
+    const res = await updateSubscriptionStatus(mockDBConfig, mockPool)(
+      "01234567890" as OrganizationFiscalCode,
+      "123" as NonEmptyString,
+      SubscriptionStatus.PROCESSING
+    )();
     if (E.isRight(res)) {
       expect(res.right.rowCount).toEqual(1);
     }

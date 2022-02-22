@@ -1,8 +1,9 @@
-import { updateAllStatusSubscriptionsSQL } from "../handler";
+import { generateUpdateSubscriptionStatusSQL } from "../handler";
 import {
   NonEmptyString,
   OrganizationFiscalCode
 } from "@pagopa/ts-commons/lib/strings";
+import { SubscriptionStatus } from "../../GetOwnershipClaimStatus/handler";
 
 const mockDBConfig = {
   DB_HOST: "localhost" as NonEmptyString,
@@ -16,9 +17,10 @@ const mockDBConfig = {
 };
 describe("UpdateSqlSubscription", () => {
   it("should create a valid Update SQL Query", () => {
-    const updateQuery = updateAllStatusSubscriptionsSQL(mockDBConfig)(
+    const updateQuery = generateUpdateSubscriptionStatusSQL(mockDBConfig)(
       "01234567890" as OrganizationFiscalCode,
-      "123" as NonEmptyString
+      "123" as NonEmptyString,
+      SubscriptionStatus.PROCESSING
     );
     expect(updateQuery).toBe(
       `update "Schema"."Table" set "status" = 'PROCESSING' where "organizationFiscalCode" = '01234567890' and "sourceId" = '123' and "status" != 'COMPLETED'`

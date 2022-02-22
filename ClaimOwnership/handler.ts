@@ -41,11 +41,12 @@ type Handler = (
 /*
  * The purpose of this function is to update the status of every subscriptions to PROCESSING for each one that isn't COMPLETED yet.
  */
-export const updateAllStatusSubscriptionsSQL = (
+export const generateUpdateSubscriptionStatusSQL = (
   dbConfig: IDecodableConfigPostgreSQL
 ) => (
   organizationFiscalCode: OrganizationFiscalCode,
-  sourceId: NonEmptyString
+  sourceId: NonEmptyString,
+  status: SubscriptionStatus
 ): NonEmptyString =>
   knex({
     client: "pg"
@@ -55,26 +56,26 @@ export const updateAllStatusSubscriptionsSQL = (
     .where({ organizationFiscalCode })
     .where({ sourceId })
     .where("status", "!=", SubscriptionStatus.COMPLETED)
-    .update({
-      status: SubscriptionStatus.PROCESSING
-    })
+    .update({ status })
     .from(dbConfig.DB_TABLE)
     .toQuery() as NonEmptyString;
 
-export const updateSubscriptionsByOrganizationFiscalCodeAndSourceId = (
-  config: IConfig,
-  connect: Pool
-) => (
+export const updateSubscriptionStatus = (config: IConfig, connect: Pool) => (
   organizationFiscalCode: OrganizationFiscalCode,
-  sourceId: NonEmptyString
+  sourceId: NonEmptyString,
+  status: SubscriptionStatus
 ): TE.TaskEither<IDbError, QueryResult<QueryResultRow>> =>
   pipe(
-    updateAllStatusSubscriptionsSQL(config)(organizationFiscalCode, sourceId),
+    generateUpdateSubscriptionStatusSQL(config)(
+      organizationFiscalCode,
+      sourceId,
+      status
+    ),
     sql => queryDataTable(connect, sql),
     TE.mapLeft(flow(toPostgreSQLErrorMessage, toPostgreSQLError))
   );
 
-export const organizationMessageToQueue = (
+export const dispatchMessageToQueue = (
   organizationFiscalCode: OrganizationFiscalCode,
   sourceId: NonEmptyString
 ): string =>
@@ -84,31 +85,21 @@ export const organizationMessageToQueue = (
     JSON.stringify
   );
 
-export const writeMessageToQueue = (context: Context) => (
-  message: string
-): void => {
-  // eslint-disable-next-line functional/immutable-data
-  context.bindings.addservicejobs = message;
-  return void 0;
-};
-
 const createHandler = (config: IConfig, pool: Pool): Handler => (
   context,
   organizationFiscalCode,
   delegateId
 ): ReturnType<Handler> =>
   pipe(
-    updateSubscriptionsByOrganizationFiscalCodeAndSourceId(config, pool)(
+    updateSubscriptionStatus(config, pool)(
       organizationFiscalCode,
-      delegateId
+      delegateId,
+      SubscriptionStatus.PROCESSING
     ),
     TE.mapLeft(e => ResponseErrorInternal(`Error on ${e.message}`)),
-    () =>
-      TE.of(
-        writeMessageToQueue(context)(
-          organizationMessageToQueue(organizationFiscalCode, delegateId)
-        )
-      ),
+    TE.map(() => dispatchMessageToQueue(organizationFiscalCode, delegateId)),
+    // eslint-disable-next-line functional/immutable-data
+    TE.map(message => (context.bindings.addservicejobs = message)),
     TE.map(_ => ResponseSuccessJson(void 0)),
     TE.toUnion
   )();

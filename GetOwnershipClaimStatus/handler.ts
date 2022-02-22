@@ -98,7 +98,7 @@ export const processResponseFromResultSet = (
     resultSet,
     ResultSet.decode,
     TE.fromEither,
-    TE.mapLeft(() => ResponseErrorInternal("Errore on decode")),
+    TE.mapLeft(() => ResponseErrorInternal("Error on decode")),
     TE.map(({ rows }) =>
       rows.reduce(
         (acc: ClaimProcedureStatus, cur: ResultRow) => ({
