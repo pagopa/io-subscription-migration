@@ -3,14 +3,14 @@
      {
       "queueName": "%QUEUE_ADD_SERVICE_TO_MIGRATIONS%",
       "connection": "INTERNAL_STORAGE_CONNECTION_STRING",
-      "name": "add-service-jobs",
+      "name": "addservicejobs",
       "type": "queueTrigger",
       "direction": "in"
     },
     {
       "queueName": "%QUEUE_SUBSCRIPTION_TO_MIGRATE%",
       "connection": "INTERNAL_STORAGE_CONNECTION_STRING",
-      "name": "migrate-one-subscription-jobs",
+      "name": "migrateonesubscriptionjobs",
       "type": "queue",
       "direction": "out"
     }
