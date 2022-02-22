@@ -7,6 +7,7 @@ import {
 import * as TE from "fp-ts/lib/TaskEither";
 import { Pool } from "pg";
 import { Context } from "@azure/functions";
+import knex from "knex";
 import {
   IConfig,
   IDecodableConfigAPIM,
@@ -17,15 +18,26 @@ import { SubscriptionStatus } from "../GetOwnershipClaimStatus/handler";
 import { ClaimSubscriptionItem } from "./type";
 
 /*
- * We need to generate a valid SQL string to get all subscription onwed by a sourceId and belongs to an Organization Fiscal Code where the status is not completed
+ * We need to generate a valid SQL string to get all subscription owned by a sourceId and belongs to an Organization Fiscal Code where the status is not completed
  */
 export const selectSubscriptionsNotCompletedSql = (
-  _dbConfig: IDecodableConfigPostgreSQL
+  dbConfig: IDecodableConfigPostgreSQL
 ) => (
-  _organizationFiscalCode: OrganizationFiscalCode,
-  _sourceId: NonEmptyString,
-  _status: SubscriptionStatus
-): NonEmptyString => "Need to return a valid SQL" as NonEmptyString;
+  organizationFiscalCode: OrganizationFiscalCode,
+  sourceId: NonEmptyString,
+  status: SubscriptionStatus
+): NonEmptyString =>
+  knex({
+    client: "pg"
+  })
+    .withSchema(dbConfig.DB_SCHEMA)
+    .table(dbConfig.DB_TABLE)
+    .select("subscriptionId")
+    .from(dbConfig.DB_TABLE)
+    .where({ organizationFiscalCode })
+    .and.where({ sourceId })
+    .andWhereNot({ status })
+    .toQuery() as NonEmptyString;
 
 /*
  * The function gets all subscriptions available to migrate for the sourceId and organization fiscal code received from the queue message item
