@@ -1,9 +1,9 @@
 {
   "bindings": [
      {
-      "queueName": "%QUEUE_ADD_SERVICE_TO_MIGRATIONS%",
+      "queueName": "%QUEUE_ALL_SUBSCRIPTIONS_TO_MIGRATE%",
       "connection": "INTERNAL_STORAGE_CONNECTION_STRING",
-      "name": "addservicejobs",
+      "name": "migrateallsubscriptionsjobs",
       "type": "queueTrigger",
       "direction": "in"
     },
