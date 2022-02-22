@@ -1,13 +1,15 @@
 import { ApiManagementClient } from "@azure/arm-apimanagement";
-import { pipe } from "fp-ts/lib/function";
+import { flow, pipe } from "fp-ts/lib/function";
 import {
   NonEmptyString,
   OrganizationFiscalCode
 } from "@pagopa/ts-commons/lib/strings";
+import * as E from "fp-ts/lib/Either";
+import * as RA from "fp-ts/lib/ReadonlyArray";
 import * as TE from "fp-ts/lib/TaskEither";
 import { Pool } from "pg";
-import { Context } from "@azure/functions";
 import knex from "knex";
+import * as t from "io-ts";
 import {
   IConfig,
   IDecodableConfigAPIM,
@@ -15,17 +17,37 @@ import {
 } from "../utils/config";
 import { withJsonInput } from "../utils/misc";
 import { SubscriptionStatus } from "../GetOwnershipClaimStatus/handler";
-import { ClaimSubscriptionItem } from "./type";
+import {
+  IApimUserError,
+  IDbError,
+  toApimUserError,
+  toPostgreSQLError,
+  toPostgreSQLErrorMessage
+} from "../models/DomainErrors";
+import { queryDataTable } from "../utils/db";
+import { ApimOrganizationUserResponse } from "../models/DomainApimResponse";
+import { ClaimOrganizationSubscriptions, ClaimSubscriptionItem } from "./type";
+
+export const SubscriptionResultRow = t.interface({
+  subscriptionId: NonEmptyString
+});
+export type SubscriptionResultRow = t.TypeOf<typeof SubscriptionResultRow>;
+
+export const SubscriptionResultSet = t.interface({
+  rowCount: t.number,
+  rows: t.readonlyArray(SubscriptionResultRow)
+});
+export type SubscriptionResultSet = t.TypeOf<typeof SubscriptionResultSet>;
 
 /*
  * We need to generate a valid SQL string to get all subscription owned by a sourceId and belongs to an Organization Fiscal Code where the status is not completed
  */
-export const selectSubscriptionsNotCompletedSql = (
+export const createSelectSubscriptions = (
   dbConfig: IDecodableConfigPostgreSQL
 ) => (
   organizationFiscalCode: OrganizationFiscalCode,
   sourceId: NonEmptyString,
-  status: SubscriptionStatus
+  statusToExclude: SubscriptionStatus
 ): NonEmptyString =>
   knex({
     client: "pg"
@@ -36,30 +58,72 @@ export const selectSubscriptionsNotCompletedSql = (
     .from(dbConfig.DB_TABLE)
     .where({ organizationFiscalCode })
     .and.where({ sourceId })
-    .andWhereNot({ status })
+    .andWhereNot({ status: statusToExclude })
     .toQuery() as NonEmptyString;
 
 /*
  * The function gets all subscriptions available to migrate for the sourceId and organization fiscal code received from the queue message item
  */
 export const getAllSubscriptionsAvailableToMigrate = (
-  _config: IConfig,
-  _pool: Pool
+  config: IConfig,
+  pool: Pool
 ) => (
-  _organizationFiscalCode: OrganizationFiscalCode
-): TE.TaskEither<unknown, unknown> =>
-  pipe(TE.throwError("Need to update Subscription Status on Database"));
-
+  organizationFiscalCode: OrganizationFiscalCode,
+  sourceId: NonEmptyString
+): TE.TaskEither<IDbError, SubscriptionResultSet> =>
+  pipe(
+    createSelectSubscriptions(config)(
+      organizationFiscalCode,
+      sourceId,
+      SubscriptionStatus.COMPLETED
+    ),
+    sql => queryDataTable(pool, sql),
+    TE.mapLeft(flow(toPostgreSQLErrorMessage, toPostgreSQLError))
+  );
 /*
  * We need to retrieve target ID in full path from APIM needed to create the message queue for claim a single subscription
  */
 export const getTargetIdFromAPIM = (
-  _config: IDecodableConfigAPIM,
-  _apimClient: ApiManagementClient
+  config: IDecodableConfigAPIM,
+  apimClient: ApiManagementClient
 ) => (
-  _organizationFiscalCode: OrganizationFiscalCode
-): TE.TaskEither<unknown, unknown> => pipe(TE.throwError("To Be implemented"));
-
+  organizationFiscalCode: OrganizationFiscalCode
+): TE.TaskEither<IApimUserError, ApimOrganizationUserResponse> =>
+  pipe(
+    TE.tryCatch(
+      async () => {
+        const resArray = [];
+        // eslint-disable-next-line functional/no-let,prefer-const
+        for await (let item of apimClient.user.listByService(
+          config.APIM_RESOURCE_GROUP,
+          config.APIM_SERVICE_NAME,
+          {
+            filter: `note eq '${organizationFiscalCode}'`
+          }
+        )) {
+          // eslint-disable-next-line functional/immutable-data
+          resArray.push(item);
+        }
+        return resArray;
+      },
+      () =>
+        toApimUserError(
+          "The provided subscription identifier is malformed or invalid or occur an Authetication Error."
+        )
+    ),
+    TE.filterOrElse(
+      results => results.length > 0,
+      () => toApimUserError("No Organization account found.")
+    ),
+    TE.chain(([organizationTarget]) =>
+      pipe(
+        organizationTarget,
+        ApimOrganizationUserResponse.decode,
+        E.mapLeft(() => toApimUserError("Account decode error.")),
+        TE.fromEither
+      )
+    )
+  );
 /*
  * Create a structure message to be inserted inside Queue
  */
@@ -73,16 +137,66 @@ export const subscriptionMessageToQueue = (
     JSON.stringify
   );
 
-/*
- * Receive a message and dispatch inside a Queue
- */
-export const dispatchMigrationJobToQueue = (_context: Context) => (
-  _message: string
-): void => void 0;
-
 export const createHandler = (
-  _config: IConfig,
-  _apimClient: ApiManagementClient,
-  _pool: Pool
+  config: IConfig,
+  apimClient: ApiManagementClient,
+  pool: Pool
 ): Parameters<typeof withJsonInput>[0] =>
-  withJsonInput(async (_context, _item): Promise<void> => void 0);
+  withJsonInput(
+    async (context, item): Promise<void> =>
+      pipe(
+        // Get the message Queue
+        item,
+        ClaimOrganizationSubscriptions.decode,
+        TE.fromEither,
+        TE.mapLeft(() => E.toError("Error on decode")),
+        TE.chain(organizationSubscriptions =>
+          pipe(
+            // Retrieve all Subscriptions to migrate (not completed yet)
+            getAllSubscriptionsAvailableToMigrate(config, pool)(
+              organizationSubscriptions.organizationFiscalCode,
+              organizationSubscriptions.sourceId
+            ),
+            TE.mapLeft(E.toError),
+            TE.map(data => ({
+              organizationFiscalCode:
+                organizationSubscriptions.organizationFiscalCode,
+              rows: data.rows // A set of SubscriptionId from OrganizationFiscalCode-SourceId
+            }))
+          )
+        ),
+        TE.chain(data =>
+          pipe(
+            // Retrieve TargetId from APIM
+            getTargetIdFromAPIM(
+              config,
+              apimClient
+            )(data.organizationFiscalCode),
+            TE.mapLeft(E.toError),
+            TE.map(apimUser => ({
+              rows: data.rows,
+              targetId: apimUser.id
+            }))
+          )
+        ),
+        TE.map(data =>
+          pipe(
+            data.rows,
+            RA.map(row =>
+              pipe(
+                // Dispatch message for each subscription to Queue migrateonesubscriptionjobs with TargetID from APIM
+                subscriptionMessageToQueue(row.subscriptionId, data.targetId),
+                message =>
+                  // eslint-disable-next-line functional/immutable-data
+                  (context.bindings.migrateonesubscriptionjobs = message)
+              )
+            )
+          )
+        ),
+        TE.map(_ => void 0 /* handler doesn't return */),
+        TE.getOrElse(err => {
+          /* handler can fail */
+          throw err;
+        })
+      )()
+  );
