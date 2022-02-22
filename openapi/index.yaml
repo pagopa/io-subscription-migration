@@ -69,7 +69,7 @@ paths:
           description: Generic server error
           schema:
             $ref: "#/definitions/ProblemJson"
-  /organizations/{organization_fiscal_code}/{delegate_id}:
+  /organizations/{organization_fiscal_code}/ownership-claims/{delegate_id}:
     post:
       operationId: claimOwnership
       summary: Claim the ownership of all subscriptions owned by a Delegate on behalf of an Organization
