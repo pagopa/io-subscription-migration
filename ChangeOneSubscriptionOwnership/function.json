@@ -3,7 +3,7 @@
     {
       "queueName": "%QUEUE_SUBSCRIPTION_TO_MIGRATE%",
       "connection": "INTERNAL_STORAGE_CONNECTION_STRING",
-      "name": "subscriptionToMigrate",
+      "name": "migrate-one-subscription-jobs",
       "type": "queueTrigger",
       "direction": "in"
     }
