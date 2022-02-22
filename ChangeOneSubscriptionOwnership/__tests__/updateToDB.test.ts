@@ -4,7 +4,7 @@ import { SubscriptionStatus } from "../../GetOwnershipClaimStatus/handler";
 import { IConfig } from "../../utils/config";
 import {
   updateSubscriptionStatusToDatabase,
-  getUpdateSubscriptionSql
+  generateUpdateSQL
 } from "../handler";
 import * as E from "fp-ts/lib/Either";
 
@@ -36,7 +36,7 @@ const mockPool = ({
 describe("Generate SQL for Subscription", () => {
   it("should generate a valid update query SQL for Subscription Status", () => {
     const expectedSql = `update "Schema"."Table" set "status" = 'COMPLETED' where "subscriptionId" = '12345678901'`;
-    const sql = getUpdateSubscriptionSql(mockConfig)(
+    const sql = generateUpdateSQL(mockConfig)(
       "12345678901" as NonEmptyString,
       SubscriptionStatus.COMPLETED
     );
@@ -48,10 +48,10 @@ describe("Update SQL for Subscription", () => {
   it("should update a Subscription Status", async () => {
     const expectedRes = { command: "UPDATE", rowCount: 1 };
 
-    const res = await updateSubscriptionStatusToDatabase(
-      mockConfig,
-      mockPool
-    )("12345678901" as NonEmptyString)();
+    const res = await updateSubscriptionStatusToDatabase(mockConfig, mockPool)(
+      "12345678901" as NonEmptyString,
+      SubscriptionStatus.COMPLETED
+    )();
 
     if (E.isRight(res)) {
       expect(res.right).toEqual(expectedRes);

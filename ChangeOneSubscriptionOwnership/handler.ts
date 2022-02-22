@@ -28,9 +28,7 @@ import { ClaimSubscriptionItem } from "./types";
 /*
  * The purpose of this function is to generate a valid Update Query Statement
  */
-export const getUpdateSubscriptionSql = (
-  dbConfig: IDecodableConfigPostgreSQL
-) => (
+export const generateUpdateSQL = (dbConfig: IDecodableConfigPostgreSQL) => (
   subscriptionId: NonEmptyString,
   status: SubscriptionStatus
 ): NonEmptyString =>
@@ -50,12 +48,12 @@ export const getUpdateSubscriptionSql = (
 export const updateSubscriptionStatusToDatabase = (
   config: IConfig,
   connect: Pool
-) => (subscriptionId: NonEmptyString): TE.TaskEither<IDbError, ResultSet> =>
+) => (
+  subscriptionId: NonEmptyString,
+  status: SubscriptionStatus
+): TE.TaskEither<IDbError, ResultSet> =>
   pipe(
-    getUpdateSubscriptionSql(config)(
-      subscriptionId,
-      SubscriptionStatus.COMPLETED
-    ),
+    generateUpdateSQL(config)(subscriptionId, status),
     sql => queryDataTable(connect, sql),
     TE.mapLeft(flow(toPostgreSQLErrorMessage, toPostgreSQLError))
   );
@@ -128,10 +126,10 @@ export const createHandler = (
         // Update subscription status on Database
         TE.chain(subscriptionToMigrate =>
           pipe(
-            updateSubscriptionStatusToDatabase(
-              config,
-              pool
-            )(subscriptionToMigrate.subscriptionId),
+            updateSubscriptionStatusToDatabase(config, pool)(
+              subscriptionToMigrate.subscriptionId,
+              SubscriptionStatus.COMPLETED
+            ),
             TE.mapLeft(E.toError)
           )
         ),
