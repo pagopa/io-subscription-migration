@@ -14,9 +14,9 @@
       "name": "res"
     },
     {
-      "queueName": "%QUEUE_ORGANIZATION_TO_MIGRATE%",
+      "queueName": "%QUEUE_ADD_SERVICE_TO_MIGRATIONS%",
       "connection": "INTERNAL_STORAGE_CONNECTION_STRING",
-      "name": "organizationToMigrate",
+      "name": "addservicejobs",
       "type": "queue",
       "direction": "out"
     }

@@ -88,7 +88,7 @@ export const writeMessageToQueue = (context: Context) => (
   message: string
 ): void => {
   // eslint-disable-next-line functional/immutable-data
-  context.bindings.incomingSubscriptions = message;
+  context.bindings.addservicejobs = message;
   return void 0;
 };
 
