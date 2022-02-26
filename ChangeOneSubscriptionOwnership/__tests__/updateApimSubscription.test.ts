@@ -15,10 +15,11 @@ function fail(reason = "fail was called in a test.") {
   throw new Error(reason);
 }
 
+const mockOwnerId =
+  "/subscriptions/XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX/resourceGroups/XXXXXXX/providers/Microsoft.ApiManagement/service/XXXXXXX/users/XXXXXXXXXXXXXXXXXXXXXXXXXX";
 const mockApimSubscriptionUpdate = jest.fn(() =>
   Promise.resolve({
-    ownerId:
-      "/subscriptions/XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX/resourceGroups/XXXXXXX/providers/Microsoft.ApiManagement/service/XXXXXXX/users/users/XXXXXXXXXXXXXXXXXXXXXXXXXX"
+    ownerId: mockOwnerId
   } as SubscriptionUpdateResponse)
 );
 const mockGetClient = () => ({
@@ -37,12 +38,12 @@ describe("updateApimSubscription", () => {
     const apimClient = (mockApimClient.getClient() as unknown) as ApiManagementClient;
     const res = await updateApimSubscription(mockConfig, apimClient)(
       "XXXXXXXXXXXXXXXXXXXXXXXXXX" as NonEmptyString,
-      "/subscriptions/XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX/resourceGroups/XXXXXXX/providers/Microsoft.ApiManagement/service/XXXXXXX/users/XXXXXXXXXXXXXXXXXXXXXXXXXX" as NonEmptyString
+      mockOwnerId as NonEmptyString
     )();
     const expectedRes = {
-      ownerId:
-        "/subscriptions/XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX/resourceGroups/XXXXXXX/providers/Microsoft.ApiManagement/service/XXXXXXX/users/users/XXXXXXXXXXXXXXXXXXXXXXXXXX"
+      ownerId: mockOwnerId
     };
+    console.log(res);
     if (E.isRight(res)) {
       expect(res.right).toEqual(expectedRes);
     } else {

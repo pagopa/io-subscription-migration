@@ -83,16 +83,11 @@ export const updateApimSubscription = (
         ),
       e => toApimUserError((e as Error).message)
     ),
-    TE.map(res => {
-      // eslint-disable-next-line no-console
-      console.log(res);
-      return res;
-    }),
     TE.chain(
       flow(
         TE.fromPredicate(
           // Check if ownerId is available and it's the same of targetId
-          res => res.ownerId !== undefined && res.ownerId !== targetId,
+          res => res.ownerId !== undefined && res.ownerId === targetId,
           () => toApimUserError("Error on update")
         )
       )
@@ -119,7 +114,18 @@ export const createHandler = (
               subscriptionToMigrate.subscriptionId,
               subscriptionToMigrate.targetId
             ),
-            TE.mapLeft(E.toError),
+            // TE.mapLeft(E.toError),
+            TE.orElseW(() =>
+              pipe(
+                updateSubscriptionStatusToDatabase(config, pool)(
+                  subscriptionToMigrate.subscriptionId,
+                  SubscriptionStatus.FAILED
+                ),
+                TE.mapLeft(() => E.toError(`Error on DB after APIM Fail`)),
+                TE.chainW(() => TE.left(E.toError("Error update on APIM")))
+              )
+            ),
+
             TE.map(() => subscriptionToMigrate) // Return subscriptionToMigrate
           )
         ),
