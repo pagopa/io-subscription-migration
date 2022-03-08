@@ -83,14 +83,10 @@ export const updateApimSubscription = (
         ),
       e => toApimUserError((e as Error).message)
     ),
-    TE.chain(
-      flow(
-        TE.fromPredicate(
-          // Check if ownerId is available and it's the same of targetId
-          res => res.ownerId !== undefined && res.ownerId === targetId,
-          () => toApimUserError("Error on update")
-        )
-      )
+    TE.filterOrElse(
+      // Check if ownerId is available and it's the same of targetId
+      res => res.ownerId !== undefined && res.ownerId === targetId,
+      () => toApimUserError("Error on update")
     )
   );
 
