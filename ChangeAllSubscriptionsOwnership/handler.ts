@@ -124,6 +124,7 @@ export const getTargetIdFromAPIM = (
       )
     )
   );
+
 /*
  * Create a structure message to be inserted inside Queue
  */
@@ -135,6 +136,18 @@ export const subscriptionMessageToQueue = (
     { subscriptionId, targetId },
     ClaimSubscriptionItem.encode,
     JSON.stringify
+  );
+
+/*
+ * Compose the list of messages to enqueue
+ */
+export const composeMessages = (
+  subscriptionsId: ReadonlyArray<SubscriptionResultRow>,
+  targetId: NonEmptyString
+): ReadonlyArray<string> =>
+  pipe(
+    subscriptionsId,
+    RA.map(row => subscriptionMessageToQueue(row.subscriptionId, targetId))
   );
 
 export const createHandler = (
@@ -181,21 +194,13 @@ export const createHandler = (
         ),
         TE.map(data =>
           pipe(
-            data.rows,
-            RA.map(row =>
-              pipe(
-                // Dispatch message for each subscription to Queue migrateonesubscriptionjobs with TargetID from APIM
-                subscriptionMessageToQueue(row.subscriptionId, data.targetId),
-                message =>
-                  // eslint-disable-next-line functional/immutable-data
-                  (context.bindings.migrateonesubscriptionjobs = message)
-              )
-            )
+            composeMessages(data.rows, data.targetId),
+            // eslint-disable-next-line functional/immutable-data
+            messages => (context.bindings.migrateonesubscriptionjobs = messages)
           )
         ),
-        TE.map(_ => void 0 /* handler doesn't return */),
+        TE.map(_ => void 0),
         TE.getOrElse(err => {
-          /* handler can fail */
           throw err;
         })
       )()
