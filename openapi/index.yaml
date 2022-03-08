@@ -45,6 +45,29 @@ paths:
           description: Generic server error
           schema:
             $ref: "#/definitions/ProblemJson"
+    post:
+      operationId: claimOwnership
+      summary: Claim the ownership of all subscriptions owned by a Delegate on behalf of an Organization
+      description: >-
+        Start the procedure to migrate the ownership of all subscriptions owned by a Delegate on behalf of an Organization to such Organization. The operation is idempotent, so calling it for a processing procedure won't generate a new procedure although a success would be respondend anyway.
+      parameters:
+        - $ref: "#/parameters/OrganizationFiscalCode"
+        - name: delegate_id
+          in: path
+          type: string
+          minLength: 1
+          required: true
+      responses:
+        "202":
+          description: Request accepted
+        "400":
+          description: Bad Request
+        "401":
+          description: Unauthorized
+        "500":
+          description: Generic server error
+          schema:
+            $ref: "#/definitions/ProblemJson"
   /organizations/{organization_fiscal_code}/delegates:
     get:
       operationId: getDelegatesByOrganization
@@ -65,30 +88,6 @@ paths:
         "404":
           description: >-
             Access data provided are invalid or no row are presents in the database table
-        "500":
-          description: Generic server error
-          schema:
-            $ref: "#/definitions/ProblemJson"
-  /organizations/{organization_fiscal_code}/{delegate_id}:
-    post:
-      operationId: claimOwnership
-      summary: Claim the ownership of all subscriptions owned by a Delegate on behalf of an Organization
-      description: >-
-        Start the procedure to migrate the ownership of all subscriptions owned by a Delegate on behalf of an Organization to such Organization. The operation is idempotent, so calling it for a processing procedure won't generate a new procedure although a success would be respondend anyway.
-      parameters:
-        - $ref: "#/parameters/OrganizationFiscalCode"
-        - name: delegate_id
-          in: path
-          type: string
-          minLength: 1
-          required: true
-      responses:
-        "202":
-          description: Request accepted
-        "400":
-          description: Bad Request
-        "401":
-          description: Unauthorized
         "500":
           description: Generic server error
           schema:
@@ -153,7 +152,7 @@ definitions:
   Email:
     format: EmailString
     type: string
-    x-import: '@pagopa/ts-commons/lib/strings'
+    x-import: "@pagopa/ts-commons/lib/strings"
   OrganizationResponseDelegates:
     type: object
     properties:
