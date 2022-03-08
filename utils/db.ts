@@ -31,11 +31,7 @@ export const queryDataTable = (
       () => pool.query(query),
       error => error as DatabaseError
     ),
-    TE.mapLeft(e => {
-      // eslint-disable-next-line no-console
-      console.log("QUIIIII", e);
-      return e;
-    })
+    TE.mapLeft(e => e)
   );
 
 export const ResultRow = t.interface({
