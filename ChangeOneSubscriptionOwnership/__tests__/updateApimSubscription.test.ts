@@ -43,7 +43,6 @@ describe("updateApimSubscription", () => {
     const expectedRes = {
       ownerId: mockOwnerId
     };
-    console.log(res);
     if (E.isRight(res)) {
       expect(res.right).toEqual(expectedRes);
     } else {

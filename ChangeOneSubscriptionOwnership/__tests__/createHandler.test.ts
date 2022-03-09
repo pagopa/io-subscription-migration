@@ -6,7 +6,11 @@ import * as db from "../../utils/db";
 import * as handler from "../handler";
 
 import * as TE from "fp-ts/TaskEither";
+import { TelemetryClient } from "applicationinsights";
 
+const mockTelemtryClient = {
+  trackEvent: jest.fn()
+};
 const mockConfig = ({} as unknown) as IConfig;
 const mockApimClient = {
   subscription: {
@@ -24,7 +28,7 @@ const mockQueryResult = {
 const mockPool = {
   query: jest.fn().mockImplementation(() => Promise.resolve(mockQueryResult))
 };
-const mockContext = ({} as unknown) as Context;
+const mockContext = { log: jest.fn() };
 
 describe("Create Handler Test", () => {
   it("should call queryDataTable and updateApimSubscription and return void", async () => {
@@ -50,8 +54,9 @@ describe("Create Handler Test", () => {
     const res = await handler.createHandler(
       mockConfig,
       (mockApimClient as unknown) as ApiManagementClient,
-      (mockPool as unknown) as Pool
-    )(mockContext, message);
+      (mockPool as unknown) as Pool,
+      (mockTelemtryClient as unknown) as TelemetryClient
+    )((mockContext as unknown) as Context, message);
 
     expect(res).toBe(void 0);
     expect(callUpdateApimSubscription).toHaveBeenCalledTimes(1);
@@ -66,8 +71,9 @@ describe("Create Handler Test", () => {
       await handler.createHandler(
         mockConfig,
         (mockApimClient as unknown) as ApiManagementClient,
-        (mockPool as unknown) as Pool
-      )(mockContext, message);
+        (mockPool as unknown) as Pool,
+        (mockTelemtryClient as unknown) as TelemetryClient
+      )((mockContext as unknown) as Context, message);
     } catch (error) {
       expect(error).toBeInstanceOf(Error);
     }

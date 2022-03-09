@@ -1,6 +1,7 @@
 import { getConfigOrThrow } from "../utils/config";
 import { getApiClient } from "../utils/apim";
 import getPool from "../utils/db";
+import { initTelemetryClient } from "../utils/appinsight";
 import { createHandler } from "./handler";
 
 const config = getConfigOrThrow();
@@ -15,6 +16,14 @@ const apimClient = getApiClient(
   config.APIM_SUBSCRIPTION_ID
 );
 
-const handleServicesChange = createHandler(config, apimClient, client);
+// Setup Appinsight
+const telemetryClient = initTelemetryClient(config);
+
+const handleServicesChange = createHandler(
+  config,
+  apimClient,
+  client,
+  telemetryClient
+);
 
 export default handleServicesChange;

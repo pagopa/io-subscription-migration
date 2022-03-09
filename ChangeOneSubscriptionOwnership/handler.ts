@@ -23,6 +23,11 @@ import {
   toPostgreSQLErrorMessage
 } from "../models/DomainErrors";
 import { queryDataTable, ResultSet } from "../utils/db";
+import {
+  trackFailedMigrationServiceDocument,
+  trackMigratedServiceDocument
+} from "../utils/tracking";
+import { initTelemetryClient } from "../utils/appinsight";
 import { ClaimSubscriptionItem } from "./types";
 
 /*
@@ -93,16 +98,19 @@ export const updateApimSubscription = (
 export const createHandler = (
   config: IConfig,
   apimClient: ApiManagementClient,
-  pool: Pool
+  pool: Pool,
+  telemetryClient: ReturnType<typeof initTelemetryClient>
 ): Parameters<typeof withJsonInput>[0] =>
   withJsonInput(
-    async (_context, subscriptionMessage): Promise<void> =>
-      // ToDo: Refactor mapLeft errors
+    async (context, subscriptionMessage): Promise<void> =>
       pipe(
         subscriptionMessage,
         ClaimSubscriptionItem.decode,
         TE.fromEither,
-        TE.mapLeft(() => E.toError("Error on decode")),
+        TE.mapLeft(() => {
+          context.log.error("Error on decode subscription message");
+          return E.toError("Error on decode");
+        }),
         // Update subscription on APIM
         TE.chain(subscriptionToMigrate =>
           pipe(
@@ -110,18 +118,14 @@ export const createHandler = (
               subscriptionToMigrate.subscriptionId,
               subscriptionToMigrate.targetId
             ),
-            // TE.mapLeft(E.toError),
-            TE.orElseW(() =>
-              pipe(
-                updateSubscriptionStatusToDatabase(config, pool)(
-                  subscriptionToMigrate.subscriptionId,
-                  SubscriptionStatus.FAILED
-                ),
-                TE.mapLeft(() => E.toError(`Error on DB after APIM Fail`)),
-                TE.chainW(() => TE.left(E.toError("Error update on APIM")))
-              )
-            ),
-
+            TE.mapLeft(() => {
+              context.log.error("Error on update APIM subscription");
+              trackFailedMigrationServiceDocument(telemetryClient)(
+                subscriptionToMigrate.subscriptionId,
+                subscriptionToMigrate.targetId
+              );
+              return E.toError("Error on update APIM subscription");
+            }),
             TE.map(() => subscriptionToMigrate) // Return subscriptionToMigrate
           )
         ),
@@ -132,11 +136,21 @@ export const createHandler = (
               subscriptionToMigrate.subscriptionId,
               SubscriptionStatus.COMPLETED
             ),
+            TE.map(() => subscriptionToMigrate), // Return subscriptionToMigrate
             TE.mapLeft(E.toError)
           )
         ),
         // We don't want to return anything
-        TE.map(_ => void 0),
+        TE.map(subscriptionMigrated => {
+          trackMigratedServiceDocument(telemetryClient)(
+            subscriptionMigrated.subscriptionId,
+            subscriptionMigrated.targetId
+          );
+          context.log(
+            `Update subscription ${subscriptionMigrated.subscriptionId} for ${subscriptionMigrated.targetId} done`
+          );
+          return void 0;
+        }),
         // If we get an error we want the handler fail
         TE.getOrElse(err => {
           throw err;

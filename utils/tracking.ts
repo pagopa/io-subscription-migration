@@ -1,4 +1,5 @@
 import { RetrievedService } from "@pagopa/io-functions-commons/dist/src/models/service";
+import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
 import { initTelemetryClient } from "./appinsight";
 
 /**
@@ -66,6 +67,44 @@ export const trackProcessedServiceDocument = (
         // eslint-disable-next-line no-underscore-dangle
         Date.now() - retrievedDocument._ts * 1000
       )
+    },
+    tagOverrides: { samplingEnabled: "false" }
+  });
+};
+
+/**
+ * Track when a Service document is migrated to a targetId
+ *
+ * @param telemetryClient
+ * @returns
+ */
+export const trackMigratedServiceDocument = (
+  telemetryClient: ReturnType<typeof initTelemetryClient>
+) => (serviceId: NonEmptyString, targetId: NonEmptyString): void => {
+  telemetryClient.trackEvent({
+    name: "selfcare.subsmigrations.services.migrated-service",
+    properties: {
+      serviceId,
+      targetId
+    },
+    tagOverrides: { samplingEnabled: "false" }
+  });
+};
+
+/**
+ * Track when a Service document is failed to migrated to a targetId
+ *
+ * @param telemetryClient
+ * @returns
+ */
+export const trackFailedMigrationServiceDocument = (
+  telemetryClient: ReturnType<typeof initTelemetryClient>
+) => (serviceId: NonEmptyString, targetId: NonEmptyString): void => {
+  telemetryClient.trackEvent({
+    name: "selfcare.subsmigrations.services.fail-migrated-service",
+    properties: {
+      serviceId,
+      targetId
     },
     tagOverrides: { samplingEnabled: "false" }
   });
