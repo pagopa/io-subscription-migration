@@ -99,7 +99,7 @@ const createHandler = (config: IConfig, pool: Pool): Handler => (
     TE.mapLeft(e => ResponseErrorInternal(`Error on ${e.message}`)),
     TE.map(() => dispatchMessageToQueue(organizationFiscalCode, delegateId)),
     // eslint-disable-next-line functional/immutable-data
-    TE.map(message => (context.bindings.addservicejobs = message)),
+    TE.map(message => (context.bindings.migrateallsubscriptionsjobs = message)),
     TE.map(_ => ResponseSuccessJson(void 0)),
     TE.toUnion
   )();
