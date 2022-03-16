@@ -108,7 +108,9 @@ export const createHandler = (
         ClaimSubscriptionItem.decode,
         TE.fromEither,
         TE.mapLeft(() => {
-          context.log.error("Error on decode subscription message");
+          context.log.error(
+            `${context.executionContext.functionName}:Error on decode subscription message`
+          );
           return E.toError("Error on decode");
         }),
         // Update subscription on APIM
@@ -119,7 +121,9 @@ export const createHandler = (
               subscriptionToMigrate.targetId
             ),
             TE.mapLeft(() => {
-              context.log.error("Error on update APIM subscription");
+              context.log.error(
+                `${context.executionContext.functionName}: Error on update APIM subscription`
+              );
               trackFailedMigrationServiceDocument(telemetryClient)(
                 subscriptionToMigrate.subscriptionId,
                 subscriptionToMigrate.targetId
@@ -147,7 +151,7 @@ export const createHandler = (
             subscriptionMigrated.targetId
           );
           context.log(
-            `Update subscription ${subscriptionMigrated.subscriptionId} for ${subscriptionMigrated.targetId} done`
+            `${context.executionContext.functionName}: Update subscription ${subscriptionMigrated.subscriptionId} for ${subscriptionMigrated.targetId} done`
           );
           return void 0;
         }),
