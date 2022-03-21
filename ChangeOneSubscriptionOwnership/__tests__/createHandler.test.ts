@@ -28,7 +28,10 @@ const mockQueryResult = {
 const mockPool = {
   query: jest.fn().mockImplementation(() => Promise.resolve(mockQueryResult))
 };
-const mockContext = { log: jest.fn() };
+const mockContext = {
+  log: jest.fn(),
+  executionContext: { functionName: jest.fn() }
+};
 
 describe("Create Handler Test", () => {
   it("should call queryDataTable and updateApimSubscription and return void", async () => {
