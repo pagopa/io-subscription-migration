@@ -17,7 +17,6 @@ import {
 } from "@pagopa/ts-commons/lib/strings";
 import { ContextMiddleware } from "@pagopa/io-functions-commons/dist/src/utils/middlewares/context_middleware";
 import { RequiredParamMiddleware } from "@pagopa/io-functions-commons/dist/src/utils/middlewares/required_param";
-import * as t from "io-ts";
 import * as E from "fp-ts/Either";
 import * as TE from "fp-ts/TaskEither";
 import { flow, pipe } from "fp-ts/lib/function";
@@ -25,7 +24,7 @@ import { Pool } from "pg";
 import knex from "knex";
 import { ClaimProcedureStatus } from "../generated/definitions/ClaimProcedureStatus";
 import { IConfig, IDecodableConfigPostgreSQL } from "../utils/config";
-import { queryDataTable } from "../utils/db";
+import { queryDataTable, ResultRow, ResultSet } from "../utils/db";
 import {
   IDbError,
   toPostgreSQLError,
@@ -38,18 +37,6 @@ export const enum SubscriptionStatus {
   INITAL = "INITIAL",
   PROCESSING = "PROCESSING"
 }
-
-export const ResultRow = t.interface({
-  count: t.string,
-  status: t.string
-});
-export type ResultRow = t.TypeOf<typeof ResultRow>;
-
-export const ResultSet = t.interface({
-  rowCount: t.number,
-  rows: t.readonlyArray(ResultRow)
-});
-export type ResultSet = t.TypeOf<typeof ResultSet>;
 
 export const createSql = (dbConfig: IDecodableConfigPostgreSQL) => (
   organizationFiscalCode: OrganizationFiscalCode,
