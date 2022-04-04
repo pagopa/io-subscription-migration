@@ -1,0 +1,19 @@
+{
+  "bindings": [
+    {
+      "authLevel": "function",
+      "type": "httpTrigger",
+      "direction": "in",
+      "name": "req",
+      "methods": ["get"],
+      "route": "api/v1/organizations/{organizationFiscalCode}/latest-ownership-claims"
+    },
+    {
+      "type": "http",
+      "direction": "out",
+      "name": "res"
+    }
+  ],
+  "scriptFile": "../dist/GetLatestMigrationsStatus/index.js",
+   "disabled": true
+}
