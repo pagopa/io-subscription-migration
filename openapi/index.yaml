@@ -125,6 +125,10 @@ parameters:
     x-import: "@pagopa/ts-commons/lib/strings"
     required: true
 definitions:
+  MigrationsStatus:
+    type: array
+    items:
+      - $ref: "#/definitions/LatestOp"
   ClaimProcedureStatus:
     type: object
     properties:
@@ -153,6 +157,16 @@ definitions:
           - initial
           - processing
     required:
+      - status
+  LatestOp:
+    type: object
+    properties:
+      sourceEmail:
+        type: string
+      status:
+        type: string
+    required:
+      - sourceEmail
       - status
   Delegate:
     type: object
