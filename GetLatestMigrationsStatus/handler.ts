@@ -11,18 +11,59 @@ import {
   IResponseSuccessJson,
   ResponseErrorInternal
 } from "@pagopa/ts-commons/lib/responses";
-import { OrganizationFiscalCode } from "@pagopa/ts-commons/lib/strings";
+import {
+  NonEmptyString,
+  OrganizationFiscalCode
+} from "@pagopa/ts-commons/lib/strings";
 import * as express from "express";
 import { pipe } from "fp-ts/lib/function";
 import * as TE from "fp-ts/lib/TaskEither";
+import knex from "knex";
 import { MigrationsStatus } from "../generated/definitions/MigrationsStatus";
-import { IConfig } from "../utils/config";
+import { SubscriptionStatus } from "../GetOwnershipClaimStatus/handler";
+import { IConfig, IDecodableConfigPostgreSQL } from "../utils/config";
 
 type Handler = () => Promise<
   | IResponseSuccessJson<{ readonly data: MigrationsStatus }>
   | IResponseErrorInternal
   | IResponseErrorNotFound
 >;
+
+export const createSqlStatus = (dbConfig: IDecodableConfigPostgreSQL) => (
+  organizationFiscalCode: OrganizationFiscalCode,
+  statusToExclude: SubscriptionStatus
+): NonEmptyString =>
+  knex({
+    client: "pg"
+  })
+    .withSchema(dbConfig.DB_SCHEMA)
+    .table(dbConfig.DB_TABLE)
+    .distinct(["t.sourceEmail", "t.status"])
+    .from(`${dbConfig.DB_TABLE} as t`)
+    .join(
+      knex({
+        client: "pg"
+      })
+        .withSchema(dbConfig.DB_SCHEMA)
+        .table(dbConfig.DB_TABLE)
+        .select(["sourceEmail"])
+        .max("updateAt as latestOp")
+        .from(dbConfig.DB_TABLE)
+        .where({ organizationFiscalCode })
+        .andWhereNot({ status: statusToExclude })
+        .groupBy("sourceEmail")
+        .as("x"),
+      function() {
+        // eslint-disable-next-line no-invalid-this
+        this.on("x.sourceEmail", "=", "t.sourceEmail").andOn(
+          "latestOp",
+          "=",
+          "t.updateAt"
+        );
+      }
+    )
+    .as("t")
+    .toQuery() as NonEmptyString;
 
 export const createHandler = (): Handler => (): ReturnType<Handler> =>
   pipe(
