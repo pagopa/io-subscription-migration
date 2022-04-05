@@ -16,7 +16,7 @@ schemes:
 security:
   - SubscriptionKey: []
 paths:
-  /organizations/{organization_fiscal_code}/latest-ownership-claims:
+  /organizations/{organization_fiscal_code}/ownership-claims/latest:
     get:
       operationId: getLatestOwnershipClaimStatus
       summary: Retrieve latest migrations status started by an Organization
@@ -28,7 +28,7 @@ paths:
         "200":
           description: Success
           schema:
-            $ref: "#/definitions/ClaimProcedureStatus"
+            $ref: "#/definitions/MigrationsStatus"
         "400":
           description: Bad Request
         "401":
