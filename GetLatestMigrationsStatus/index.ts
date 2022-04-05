@@ -1,5 +1,9 @@
-import { getConfigOrThrow } from "../utils/config";
+import express = require("express");
+import { setAppContext } from "@pagopa/io-functions-commons/dist/src/utils/middlewares/context_middleware";
+import createAzureFunctionHandler from "@pagopa/express-azure-functions/dist/src/createAzureFunctionsHandler";
+import { Context } from "@azure/functions";
 import { getApiClient } from "../utils/apim";
+import { getConfigOrThrow } from "../utils/config";
 import { getLatestMigrationsHandler } from "./handler";
 
 const config = getConfigOrThrow();
@@ -14,6 +18,21 @@ const apimClient = getApiClient(
   config.APIM_SUBSCRIPTION_ID
 );
 
-const handleServicesChange = getLatestMigrationsHandler(config, apimClient);
+const setupExpress = (): express.Express => {
+  const app = express();
+  app.get(
+    "/api/v1/organizations/:organizationFiscalCode/ownership-claims/latest",
+    getLatestMigrationsHandler(config, apimClient)
+  );
+  return app;
+};
 
-export default handleServicesChange;
+const appExpress = setupExpress();
+const azureFunctionHandler = createAzureFunctionHandler(appExpress);
+
+const httpStart = (context: Context): void => {
+  setAppContext(appExpress, context);
+  azureFunctionHandler(context);
+};
+
+export default httpStart;
