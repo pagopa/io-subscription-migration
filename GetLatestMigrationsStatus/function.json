@@ -6,7 +6,7 @@
       "direction": "in",
       "name": "req",
       "methods": ["get"],
-      "route": "api/v1/organizations/{organizationFiscalCode}/latest-ownership-claims"
+      "route": "api/v1/organizations/{organization_fiscal_code}/ownership-claims/latest"
     },
     {
       "type": "http",
