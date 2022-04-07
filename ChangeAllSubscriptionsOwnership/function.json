@@ -15,6 +15,5 @@
       "direction": "out"
     }
   ],
-  "scriptFile": "../dist/ChangeOneSubscriptionOwnership/index.js",
-  "disabled": true
+  "scriptFile": "../dist/ChangeOneSubscriptionOwnership/index.js"
 }
