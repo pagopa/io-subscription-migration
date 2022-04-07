@@ -16,6 +16,30 @@ schemes:
 security:
   - SubscriptionKey: []
 paths:
+  /organizations/{organization_fiscal_code}/ownership-claims/latest:
+    get:
+      operationId: getLatestOwnershipClaimStatus
+      summary: Retrieve latest migrations status started by an Organization
+      description: >-
+        Given an Organization Fiscal Code a migrations status is returned in order to know which Delegate is migrated or in progession to be migrate.
+      parameters:
+        - $ref: "#/parameters/OrganizationFiscalCode"
+      responses:
+        "200":
+          description: Success
+          schema:
+            $ref: "#/definitions/MigrationsStatus"
+        "400":
+          description: Bad Request
+        "401":
+          description: Unauthorized
+        "404":
+          description: >-
+            Access data provided are invalid or no row are presents in the database table
+        "500":
+          description: Generic server error
+          schema:
+            $ref: "#/definitions/ProblemJson"
   /organizations/{organization_fiscal_code}/ownership-claims/{delegate_id}:
     get:
       operationId: getOwnershipClaimStatus
@@ -101,6 +125,10 @@ parameters:
     x-import: "@pagopa/ts-commons/lib/strings"
     required: true
 definitions:
+  MigrationsStatus:
+    type: array
+    items:
+      - $ref: "#/definitions/LatestOp"
   ClaimProcedureStatus:
     type: object
     properties:
@@ -129,6 +157,16 @@ definitions:
           - initial
           - processing
     required:
+      - status
+  LatestOp:
+    type: object
+    properties:
+      sourceEmail:
+        type: string
+      status:
+        type: string
+    required:
+      - sourceEmail
       - status
   Delegate:
     type: object
