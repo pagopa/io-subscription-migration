@@ -201,6 +201,9 @@ export const createHandler = (
         ),
         TE.map(_ => void 0),
         TE.getOrElse(err => {
+          context.log.error(
+            `ChangeAllSubscriptionsOwnership|ERROR=${err.message}`
+          );
           throw err;
         })
       )()
