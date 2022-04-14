@@ -68,3 +68,7 @@ export const toApimSubErrorMessage = ({
       return `APIM Generic error|${code || "no-code-returned"}|${message}`;
   }
 };
+
+export const toError = (
+  domainError: IDbError | IApimSubError | IApimUserError
+): Error => new Error(`${domainError.kind}: ${domainError.message}`);
