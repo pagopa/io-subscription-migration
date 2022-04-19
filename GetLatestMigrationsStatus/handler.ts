@@ -1,4 +1,3 @@
-import { ApiManagementClient } from "@azure/arm-apimanagement";
 import { ContextMiddleware } from "@pagopa/io-functions-commons/dist/src/utils/middlewares/context_middleware";
 import { RequiredParamMiddleware } from "@pagopa/io-functions-commons/dist/src/utils/middlewares/required_param";
 import {
@@ -9,22 +8,44 @@ import {
   IResponseErrorInternal,
   IResponseErrorNotFound,
   IResponseSuccessJson,
-  ResponseErrorInternal
+  ResponseErrorInternal,
+  ResponseSuccessJson
 } from "@pagopa/ts-commons/lib/responses";
 import {
   NonEmptyString,
   OrganizationFiscalCode
 } from "@pagopa/ts-commons/lib/strings";
 import * as express from "express";
-import { pipe } from "fp-ts/lib/function";
+import { flow, pipe } from "fp-ts/lib/function";
+import * as E from "fp-ts/Either";
 import * as TE from "fp-ts/lib/TaskEither";
 import knex from "knex";
+import { Pool } from "pg";
+import * as t from "io-ts";
+import { Context } from "@azure/functions";
 import { MigrationsStatus } from "../generated/definitions/MigrationsStatus";
 import { SubscriptionStatus } from "../GetOwnershipClaimStatus/handler";
+import {
+  IDbError,
+  toPostgreSQLError,
+  toPostgreSQLErrorMessage
+} from "../models/DomainErrors";
 import { IConfig, IDecodableConfigPostgreSQL } from "../utils/config";
+import { queryDataTable } from "../utils/db";
 
-type Handler = () => Promise<
-  | IResponseSuccessJson<{ readonly data: MigrationsStatus }>
+export const LatestMigrationResultSet = t.interface({
+  rowCount: t.number,
+  rows: MigrationsStatus
+});
+export type LatestMigrationResultSet = t.TypeOf<
+  typeof LatestMigrationResultSet
+>;
+
+type Handler = (
+  context: Context,
+  organizationFiscalCode: OrganizationFiscalCode
+) => Promise<
+  | IResponseSuccessJson<MigrationsStatus>
   | IResponseErrorInternal
   | IResponseErrorNotFound
 >;
@@ -65,21 +86,51 @@ export const createSqlStatus = (dbConfig: IDecodableConfigPostgreSQL) => (
     .as("t")
     .toQuery() as NonEmptyString;
 
-export const createHandler = (): Handler => (): ReturnType<Handler> =>
+export const getLatestMigrationByOrganizationFiscalCode = (
+  config: IConfig,
+  connect: Pool
+) => (
+  organizationFiscalCode: OrganizationFiscalCode
+): TE.TaskEither<IDbError, LatestMigrationResultSet> =>
   pipe(
-    TE.throwError<
-      string,
-      IResponseSuccessJson<{ readonly data: MigrationsStatus }>
-    >("To be Implementend"),
-    TE.mapLeft(ResponseErrorInternal),
+    createSqlStatus(config)(organizationFiscalCode, SubscriptionStatus.INITAL),
+    sql => queryDataTable(connect, sql),
+    TE.mapLeft(flow(toPostgreSQLErrorMessage, toPostgreSQLError))
+  );
+
+export const processResponseFromLatestMigrationResultSet = (
+  resultSet: LatestMigrationResultSet
+): TE.TaskEither<
+  IResponseErrorInternal | IResponseErrorNotFound,
+  IResponseSuccessJson<MigrationsStatus>
+> =>
+  pipe(
+    resultSet,
+    LatestMigrationResultSet.decode,
+    TE.fromEither,
+    TE.mapLeft(() => ResponseErrorInternal("Error on decode")),
+    TE.map(data => ResponseSuccessJson(data.rows))
+  );
+
+export const createHandler = (config: IConfig, pool: Pool): Handler => async (
+  _context,
+  organizationFiscalCode
+): ReturnType<Handler> =>
+  pipe(
+    getLatestMigrationByOrganizationFiscalCode(
+      config,
+      pool
+    )(organizationFiscalCode),
+    TE.mapLeft(flow(E.toError, e => ResponseErrorInternal(e.message))),
+    TE.chainW(processResponseFromLatestMigrationResultSet),
     TE.toUnion
   )();
 
 export const getLatestMigrationsHandler = (
-  _config: IConfig,
-  _apimClient: ApiManagementClient
+  config: IConfig,
+  client: Pool
 ): express.RequestHandler => {
-  const handler = createHandler();
+  const handler = createHandler(config, client);
   const middlewaresWrap = withRequestMiddlewares(
     ContextMiddleware(),
     RequiredParamMiddleware("organizationFiscalCode", OrganizationFiscalCode)

@@ -1,8 +1,11 @@
+import { Context } from "@azure/functions";
 import {
   NonEmptyString,
   OrganizationFiscalCode
 } from "@pagopa/ts-commons/lib/strings";
+import { Pool, QueryResult } from "pg";
 import { SubscriptionStatus } from "../../GetOwnershipClaimStatus/handler";
+import { IConfig } from "../../utils/config";
 import { createHandler, createSqlStatus } from "../handler";
 
 const mockDBConfig = {
@@ -15,12 +18,26 @@ const mockDBConfig = {
   DB_TABLE: "Table" as NonEmptyString,
   DB_USER: "User" as NonEmptyString
 };
-
+const mockConfig = ({} as unknown) as IConfig;
+const mockQueryResult = {
+  command: "SELECT",
+  rowCount: 1
+} as QueryResult;
+const mockPool = {
+  query: jest.fn().mockImplementation(() => Promise.resolve(mockQueryResult))
+};
+const mockContext = {
+  log: jest.fn(),
+  executionContext: { functionName: jest.fn() }
+};
 describe("Create Handler Test", () => {
   it("should return a Reponse Error Internal", async () => {
-    const handler = createHandler();
+    const handler = createHandler(mockConfig, (mockPool as unknown) as Pool);
 
-    const response = await handler();
+    const response = await handler(
+      (mockContext as unknown) as Context,
+      "12345678901" as OrganizationFiscalCode
+    );
 
     expect(response.kind).toBe("IResponseErrorInternal");
   });
