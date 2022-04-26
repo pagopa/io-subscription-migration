@@ -2,6 +2,7 @@ import express = require("express");
 import { setAppContext } from "@pagopa/io-functions-commons/dist/src/utils/middlewares/context_middleware";
 import createAzureFunctionHandler from "@pagopa/express-azure-functions/dist/src/createAzureFunctionsHandler";
 import { Context } from "@azure/functions";
+import { secureExpressApp } from "@pagopa/io-functions-commons/dist/src/utils/express";
 import { getConfigOrThrow } from "../utils/config";
 import getPool from "../utils/db";
 import { getLatestMigrationsHandler } from "./handler";
@@ -11,6 +12,7 @@ const client = getPool(config);
 
 const setupExpress = (): express.Express => {
   const app = express();
+  secureExpressApp(app);
   app.get(
     "/api/v1/organizations/:organizationFiscalCode/ownership-claims/latest",
     getLatestMigrationsHandler(config, client)
