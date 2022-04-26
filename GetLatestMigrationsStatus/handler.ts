@@ -121,7 +121,14 @@ export const createHandler = (config: IConfig, pool: Pool): Handler => async (
       config,
       pool
     )(organizationFiscalCode),
-    TE.mapLeft(flow(E.toError, e => ResponseErrorInternal(e.message))),
+    TE.mapLeft(error =>
+      pipe(error, e =>
+        ResponseErrorInternal(
+          `${e.kind}: ${e.message ||
+            "Error on getLatestMigrationByOrganizationFiscalCode"}`
+        )
+      )
+    ),
     TE.chainW(processResponseFromLatestMigrationResultSet),
     TE.toUnion
   )();
