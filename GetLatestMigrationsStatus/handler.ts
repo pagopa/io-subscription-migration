@@ -17,7 +17,6 @@ import {
 } from "@pagopa/ts-commons/lib/strings";
 import * as express from "express";
 import { flow, pipe } from "fp-ts/lib/function";
-import * as E from "fp-ts/Either";
 import * as TE from "fp-ts/lib/TaskEither";
 import knex from "knex";
 import { Pool } from "pg";
