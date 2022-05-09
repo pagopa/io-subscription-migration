@@ -4,6 +4,8 @@ import {
 } from "@pagopa/ts-commons/lib/strings";
 import { isRight } from "fp-ts/lib/Either";
 import { Pool, QueryResult } from "pg";
+import { ClaimProcedureStatus } from "../../generated/definitions/ClaimProcedureStatus";
+import { Delegate } from "../../generated/definitions/Delegate";
 import { IConfig } from "../../utils/config";
 import {
   LatestMigrationResultSet,
@@ -33,8 +35,18 @@ const mockQueryResult: QueryResult<LatestMigrationResultSet> = {
   rowCount: 1,
   rows: [
     {
-      sourceEmail: "source@email.com",
-      status: "COMPLETED"
+      delegate: {
+        sourceEmail: "source@email.com",
+        sourceId: "1234",
+        sourceName: "TestName",
+        sourceSurname: "TestSurname"
+      },
+      status: {
+        completed: 2,
+        initial: 1,
+        failed: 0,
+        processing: 2
+      }
     }
   ]
 } as QueryResult;
@@ -55,8 +67,19 @@ describe("Select SQL for Latest Migration", () => {
         rowCount: 1,
         rows: [
           {
-            sourceEmail: "source@email.com",
-            status: "COMPLETED"
+            delegate: {
+              sourceEmail: "source@email.com",
+              sourceId: "1234",
+              sourceName: "TestName",
+              sourceSurname: "TestSurname"
+            },
+
+            status: {
+              completed: 2,
+              failed: 0,
+              initial: 1,
+              processing: 2
+            }
           }
         ]
       });

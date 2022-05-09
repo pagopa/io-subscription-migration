@@ -23,7 +23,6 @@ import { Pool } from "pg";
 import * as t from "io-ts";
 import { Context } from "@azure/functions";
 import { MigrationsStatus } from "../generated/definitions/MigrationsStatus";
-import { SubscriptionStatus } from "../GetOwnershipClaimStatus/handler";
 import {
   IDbError,
   toPostgreSQLError,
@@ -49,42 +48,55 @@ type Handler = (
   | IResponseErrorNotFound
 >;
 
+/*
+We get a resultSet with this fields for every delegate belongs to an Organization:
+sourceId | sourceName | sourceSurname | sourceEmail | Initial | Processing | Failed | Completed
+
+where the latest 4 fields are the sum for every subscriptions in the specific status
+*/
 export const createSqlStatus = (dbConfig: IDecodableConfigPostgreSQL) => (
-  organizationFiscalCode: OrganizationFiscalCode,
-  statusToExclude: SubscriptionStatus
+  organizationFiscalCode: OrganizationFiscalCode
 ): NonEmptyString =>
   knex({
     client: "pg"
   })
     .withSchema(dbConfig.DB_SCHEMA)
     .table(dbConfig.DB_TABLE)
-    .distinct(["t.sourceEmail", "t.status"])
-    .from(`${dbConfig.DB_TABLE} as t`)
-    .join(
+    .select([
+      "sourceId",
+      "sourceName",
+      "sourceSurname",
+      "sourceEmail",
       knex({
         client: "pg"
-      })
-        .withSchema(dbConfig.DB_SCHEMA)
-        .table(dbConfig.DB_TABLE)
-        .select(["sourceEmail"])
-        .max("updateAt as latestOp")
-        .from(dbConfig.DB_TABLE)
-        .where({ organizationFiscalCode })
-        .andWhereNot({ status: statusToExclude })
-        .groupBy("sourceEmail")
-        .as("x"),
-      function() {
-        // eslint-disable-next-line no-invalid-this
-        this.on("x.sourceEmail", "=", "t.sourceEmail").andOn(
-          "latestOp",
-          "=",
-          "t.updateAt"
-        );
-      }
-    )
-    .as("t")
+      }).raw(
+        `sum(CASE WHEN "m"."status" = 'INITIAL' THEN 1 ELSE 0 END) as initial`
+      ),
+      knex({
+        client: "pg"
+      }).raw(
+        `sum(CASE WHEN "m"."status" = 'PROCESSING' THEN 1 ELSE 0 END) as processing`
+      ),
+      knex({
+        client: "pg"
+      }).raw(
+        `sum(CASE WHEN "m"."status" = 'FAILED' THEN 1 ELSE 0 END) as failed`
+      ),
+      knex({
+        client: "pg"
+      }).raw(
+        `sum(CASE WHEN "m"."status" = 'COMPLETED' THEN 1 ELSE 0 END) as completed`
+      )
+    ])
+
+    .from(`${dbConfig.DB_TABLE} as m`)
+    .where({ organizationFiscalCode })
+    .groupBy(["sourceId", "sourceName", "sourceSurname", "sourceEmail"])
     .toQuery() as NonEmptyString;
 
+/*
+We would retrieve all the operations for each delegates belongs to an Organization Fiscal Code
+ */
 export const getLatestMigrationByOrganizationFiscalCode = (
   config: IConfig,
   connect: Pool
@@ -92,7 +104,7 @@ export const getLatestMigrationByOrganizationFiscalCode = (
   organizationFiscalCode: OrganizationFiscalCode
 ): TE.TaskEither<IDbError, LatestMigrationResultSet> =>
   pipe(
-    createSqlStatus(config)(organizationFiscalCode, SubscriptionStatus.INITAL),
+    createSqlStatus(config)(organizationFiscalCode),
     sql => queryDataTable(connect, sql),
     TE.mapLeft(flow(toPostgreSQLErrorMessage, toPostgreSQLError))
   );
@@ -105,9 +117,7 @@ export const processResponseFromLatestMigrationResultSet = (
 > =>
   pipe(
     resultSet,
-    LatestMigrationResultSet.decode,
-    TE.fromEither,
-    TE.mapLeft(() => ResponseErrorInternal("Error on decode")),
+    TE.of,
     TE.map(data => ResponseSuccessJson(data.rows))
   );
 
@@ -120,15 +130,25 @@ export const createHandler = (config: IConfig, pool: Pool): Handler => async (
       config,
       pool
     )(organizationFiscalCode),
-    TE.mapLeft(error =>
-      pipe(error, e =>
-        ResponseErrorInternal(
-          `${e.kind}: ${e.message ||
-            "Error on getLatestMigrationByOrganizationFiscalCode"}`
-        )
+    TE.chainW(data =>
+      pipe(
+        data,
+        LatestMigrationResultSet.decode,
+        TE.fromEither,
+        TE.mapLeft(() => ResponseErrorInternal("Error on decode"))
       )
     ),
-    TE.chainW(processResponseFromLatestMigrationResultSet),
+    TE.mapLeft(e =>
+      ResponseErrorInternal(
+        `${e.kind}: ${
+          e.kind === "dberror"
+            ? e.message
+            : "Error on getLatestMigrationByOrganizationFiscalCode"
+        }
+          `
+      )
+    ),
+    TE.chain(processResponseFromLatestMigrationResultSet),
     TE.toUnion
   )();
 

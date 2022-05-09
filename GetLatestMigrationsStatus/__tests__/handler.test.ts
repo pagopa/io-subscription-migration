@@ -21,7 +21,7 @@ const mockDBConfig = {
 const mockConfig = ({} as unknown) as IConfig;
 const mockQueryResult = {
   command: "SELECT",
-  rowCount: 1
+  rowCount: 0
 } as QueryResult;
 const mockPool = {
   query: jest.fn().mockImplementation(() => Promise.resolve(mockQueryResult))
@@ -45,10 +45,9 @@ describe("Create Handler Test", () => {
 
 describe("Create SQL Query", () => {
   it("should generate a valid SQL Query", () => {
-    const expectedSql = `select distinct "t"."sourceEmail", "t"."status" from "TableSchema"."Table" as "t" inner join (select "sourceEmail", max("updateAt") as "latestOp" from "TableSchema"."Table" where "organizationFiscalCode" = '12345678901' and not "status" = 'INITIAL' group by "sourceEmail") as "x" on "x"."sourceEmail" = "t"."sourceEmail" and "latestOp" = "t"."updateAt"`;
+    const expectedSql = `select "sourceId", "sourceName", "sourceSurname", "sourceEmail", sum(CASE WHEN "m"."status" = 'INITIAL' THEN 1 ELSE 0 END) as initial, sum(CASE WHEN "m"."status" = 'PROCESSING' THEN 1 ELSE 0 END) as processing, sum(CASE WHEN "m"."status" = 'FAILED' THEN 1 ELSE 0 END) as failed, sum(CASE WHEN "m"."status" = 'COMPLETED' THEN 1 ELSE 0 END) as completed from "TableSchema"."Table" as "m" where "organizationFiscalCode" = '12345678901' group by "sourceId", "sourceName", "sourceSurname", "sourceEmail"`;
     const sql = createSqlStatus(mockDBConfig)(
-      "12345678901" as OrganizationFiscalCode,
-      SubscriptionStatus.INITAL
+      "12345678901" as OrganizationFiscalCode
     );
 
     expect(sql).toBe(expectedSql);
