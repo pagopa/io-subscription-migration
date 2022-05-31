@@ -22,12 +22,24 @@ describe("Array Delegates", () => {
   it("should validate a valid Latest Operation response", () => {
     const operations: MigrationsStatus = [
       {
-        sourceEmail: "test@email.com" as Email,
-        status: "PENDING"
+        delegate: {
+          sourceId: "123",
+          sourceName: "TestName",
+          sourceSurname: "TestSurname",
+          sourceEmail: "test@email.com" as Email
+        },
+
+        status: { processing: 1, completed: 0, initial: 1, failed: 2 }
       },
       {
-        sourceEmail: "test@email.com" as Email,
-        status: "COMPLETED"
+        delegate: {
+          sourceId: "456",
+          sourceName: "TestName2",
+          sourceSurname: "TestSurname2",
+          sourceEmail: "test@email.com" as Email
+        },
+
+        status: { processing: 1, completed: 0, initial: 1, failed: 2 }
       }
     ];
 

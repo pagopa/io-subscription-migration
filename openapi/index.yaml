@@ -159,15 +159,14 @@ definitions:
     required:
       - status
   LatestOp:
-    type: object
-    properties:
-      sourceEmail:
-        type: string
-      status:
-        type: string
-    required:
-      - sourceEmail
-      - status
+   allOf:
+    - $ref: "#/definitions/ClaimProcedureStatus"
+    - type: object
+      properties:
+        delegate:
+          $ref: "#/definitions/Delegate"
+      required:
+        - delegate
   Delegate:
     type: object
     properties:
@@ -186,7 +185,6 @@ definitions:
       - sourceName
       - sourceSurname
       - sourceEmail
-      - subscriptionCounter
   Email:
     format: EmailString
     type: string
