@@ -17,12 +17,15 @@ import {
 } from "@pagopa/ts-commons/lib/strings";
 import * as express from "express";
 import { flow, pipe } from "fp-ts/lib/function";
+import * as E from "fp-ts/lib/Either";
 import * as TE from "fp-ts/lib/TaskEither";
+import * as RA from "fp-ts/lib/ReadonlyArray";
 import knex from "knex";
-import { Pool } from "pg";
+import { Pool, QueryResult } from "pg";
 import * as t from "io-ts";
 import { Context } from "@azure/functions";
-import { MigrationsStatus } from "../generated/definitions/MigrationsStatus";
+import { readableReport } from "@pagopa/ts-commons/lib/reporters";
+import { LatestMigrationsResponse } from "../generated/definitions/LatestMigrationsResponse";
 import {
   IDbError,
   toPostgreSQLError,
@@ -31,19 +34,11 @@ import {
 import { IConfig, IDecodableConfigPostgreSQL } from "../utils/config";
 import { queryDataTable } from "../utils/db";
 
-export const LatestMigrationResultSet = t.interface({
-  rowCount: t.number,
-  rows: MigrationsStatus
-});
-export type LatestMigrationResultSet = t.TypeOf<
-  typeof LatestMigrationResultSet
->;
-
 type Handler = (
   context: Context,
   organizationFiscalCode: OrganizationFiscalCode
 ) => Promise<
-  | IResponseSuccessJson<MigrationsStatus>
+  | IResponseSuccessJson<LatestMigrationsResponse>
   | IResponseErrorInternal
   | IResponseErrorNotFound
 >;
@@ -102,23 +97,35 @@ export const getLatestMigrationByOrganizationFiscalCode = (
   connect: Pool
 ) => (
   organizationFiscalCode: OrganizationFiscalCode
-): TE.TaskEither<IDbError, LatestMigrationResultSet> =>
+): TE.TaskEither<IDbError, QueryResult> =>
   pipe(
     createSqlStatus(config)(organizationFiscalCode),
     sql => queryDataTable(connect, sql),
     TE.mapLeft(flow(toPostgreSQLErrorMessage, toPostgreSQLError))
   );
 
+// format a db recordset into a struct as expected by the response specification
 export const processResponseFromLatestMigrationResultSet = (
-  resultSet: LatestMigrationResultSet
-): TE.TaskEither<
-  IResponseErrorInternal | IResponseErrorNotFound,
-  IResponseSuccessJson<MigrationsStatus>
-> =>
+  resultSet: QueryResult
+): E.Either<t.Errors, LatestMigrationsResponse> =>
   pipe(
-    resultSet,
-    TE.of,
-    TE.map(data => ResponseSuccessJson(data.rows))
+    resultSet.rows,
+    RA.map(row => ({
+      delegate: {
+        sourceEmail: row.sourceEmail,
+        sourceId: row.sourceId,
+        sourceName: row.sourceName,
+        sourceSurname: row.sourceSurname
+      },
+      status: {
+        completed: Number(row.completed),
+        failed: Number(row.failed),
+        initial: Number(row.initial),
+        processing: Number(row.processing)
+      }
+    })),
+    items => ({ items }),
+    LatestMigrationsResponse.decode
   );
 
 export const createHandler = (config: IConfig, pool: Pool): Handler => async (
@@ -130,25 +137,22 @@ export const createHandler = (config: IConfig, pool: Pool): Handler => async (
       config,
       pool
     )(organizationFiscalCode),
-    TE.chainW(data =>
-      pipe(
-        data,
-        LatestMigrationResultSet.decode,
-        TE.fromEither,
-        TE.mapLeft(() => ResponseErrorInternal("Error on decode"))
-      )
-    ),
     TE.mapLeft(e =>
-      ResponseErrorInternal(
-        `${e.kind}: ${
-          e.kind === "dberror"
-            ? e.message
-            : "Error on getLatestMigrationByOrganizationFiscalCode"
-        }
-          `
+      ResponseErrorInternal(`Failed to execute query on database: ${e.message}`)
+    ),
+    TE.mapLeft(_ => _),
+    TE.chainW(
+      flow(
+        processResponseFromLatestMigrationResultSet,
+        TE.fromEither,
+        TE.mapLeft(err =>
+          ResponseErrorInternal(
+            `Failed decoding query data: ${readableReport(err)}`
+          )
+        )
       )
     ),
-    TE.chain(processResponseFromLatestMigrationResultSet),
+    TE.map(ResponseSuccessJson),
     TE.toUnion
   )();
 
