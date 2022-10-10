@@ -3,7 +3,7 @@
   "description": "",
   "author": "IO team",
   "repository": "https://github.com/pagopa/io-subscription-migrations",
-  "version": "1.8.3",
+  "version": "1.8.5",
   "license": "MIT",
   "scripts": {
     "prebuild": "shx rm -rf dist && yarn generate",
@@ -50,7 +50,7 @@
     "prettier": "^1.18.2",
     "shx": "^0.3.2",
     "sqlite": "^4.0.23",
-    "sqlite3": "^5.0.2",
+    "sqlite3": "^5.0.3",
     "ts-jest": "^27.1.3",
     "typescript": "^4.3.5"
   },

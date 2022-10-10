@@ -22,7 +22,8 @@ import {
   IDbError,
   toApimUserError,
   toPostgreSQLError,
-  toPostgreSQLErrorMessage
+  toPostgreSQLErrorMessage,
+  toError as domainErrorToError
 } from "../models/DomainErrors";
 import { queryDataTable } from "../utils/db";
 import { ApimOrganizationUserResponse } from "../models/DomainApimResponse";
@@ -170,7 +171,7 @@ export const createHandler = (
               organizationSubscriptions.organizationFiscalCode,
               organizationSubscriptions.sourceId
             ),
-            TE.mapLeft(E.toError),
+            TE.mapLeft(domainErrorToError),
             TE.map(data => ({
               organizationFiscalCode:
                 organizationSubscriptions.organizationFiscalCode,
@@ -185,7 +186,7 @@ export const createHandler = (
               config,
               apimClient
             )(data.organizationFiscalCode),
-            TE.mapLeft(E.toError),
+            TE.mapLeft(domainErrorToError),
             TE.map(apimUser => ({
               rows: data.rows,
               targetId: apimUser.id
@@ -201,6 +202,9 @@ export const createHandler = (
         ),
         TE.map(_ => void 0),
         TE.getOrElse(err => {
+          context.log.error(
+            `ChangeAllSubscriptionsOwnership|ERROR=${err.message}`
+          );
           throw err;
         })
       )()
