@@ -28,7 +28,7 @@ paths:
         "200":
           description: Success
           schema:
-            $ref: "#/definitions/MigrationsStatus"
+            $ref: "#/definitions/LatestMigrationsResponse"
         "400":
           description: Bad Request
         "401":
@@ -125,10 +125,13 @@ parameters:
     x-import: "@pagopa/ts-commons/lib/strings"
     required: true
 definitions:
-  MigrationsStatus:
-    type: array
-    items:
-      - $ref: "#/definitions/LatestOp"
+  LatestMigrationsResponse:
+    type: object
+    properties:
+      items: 
+        type: array
+        items:
+          - $ref: "#/definitions/LatestOp"
   ClaimProcedureStatus:
     type: object
     properties:

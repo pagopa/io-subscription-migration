@@ -1,4 +1,6 @@
+import * as express from "express";
 import { Context } from "@azure/functions";
+import { ResponseSuccessJson } from "@pagopa/ts-commons/lib/responses";
 import {
   NonEmptyString,
   OrganizationFiscalCode
@@ -7,6 +9,7 @@ import { Pool, QueryResult } from "pg";
 import { SubscriptionStatus } from "../../GetOwnershipClaimStatus/handler";
 import { IConfig } from "../../utils/config";
 import { createHandler, createSqlStatus } from "../handler";
+import { IDbError } from "../../models/DomainErrors";
 
 const mockDBConfig = {
   DB_HOST: "localhost" as NonEmptyString,
@@ -19,19 +22,37 @@ const mockDBConfig = {
   DB_USER: "User" as NonEmptyString
 };
 const mockConfig = ({} as unknown) as IConfig;
-const mockQueryResult = {
+
+const mockQueryCommand = jest.fn().mockImplementation(async () => ({
   command: "SELECT",
   rowCount: 0
-} as QueryResult;
+}));
 const mockPool = {
-  query: jest.fn().mockImplementation(() => Promise.resolve(mockQueryResult))
+  query: mockQueryCommand
 };
 const mockContext = {
   log: jest.fn(),
   executionContext: { functionName: jest.fn() }
 };
+
+const aDbError: IDbError = {
+  kind: "dberror",
+  message: "an error message"
+};
+
+const createMockExpressResponse = () => {
+  const self: express.Response = ({
+    json: jest.fn(_ => self),
+    set: jest.fn(_ => self),
+    status: jest.fn(_ => self)
+  } as unknown) as express.Response;
+  return self;
+};
+
 describe("Create Handler Test", () => {
-  it("should return a Reponse Error Internal", async () => {
+  it("should return a server error when db query fails", async () => {
+    mockQueryCommand.mockImplementationOnce(() => Promise.reject(aDbError));
+
     const handler = createHandler(mockConfig, (mockPool as unknown) as Pool);
 
     const response = await handler(
@@ -39,17 +60,125 @@ describe("Create Handler Test", () => {
       "12345678901" as OrganizationFiscalCode
     );
 
-    expect(response.kind).toBe("IResponseErrorInternal");
-  });
-});
+    const mockExpressResponse = createMockExpressResponse();
+    response.apply(mockExpressResponse);
 
-describe("Create SQL Query", () => {
-  it("should generate a valid SQL Query", () => {
-    const expectedSql = `select "sourceId", "sourceName", "sourceSurname", "sourceEmail", sum(CASE WHEN "m"."status" = 'INITIAL' THEN 1 ELSE 0 END) as initial, sum(CASE WHEN "m"."status" = 'PROCESSING' THEN 1 ELSE 0 END) as processing, sum(CASE WHEN "m"."status" = 'FAILED' THEN 1 ELSE 0 END) as failed, sum(CASE WHEN "m"."status" = 'COMPLETED' THEN 1 ELSE 0 END) as completed from "TableSchema"."Table" as "m" where "organizationFiscalCode" = '12345678901' group by "sourceId", "sourceName", "sourceSurname", "sourceEmail"`;
-    const sql = createSqlStatus(mockDBConfig)(
+    expect(mockExpressResponse.status).toHaveBeenCalledWith(500);
+  });
+
+  it("should return a server error when db query returns data in unexpected shape", async () => {
+    mockQueryCommand.mockImplementationOnce(async () => ({
+      command: "SELECT",
+      rowCount: 0,
+      rows: [
+        // a result in a wrong shape
+        {
+          foo: "bar"
+        }
+      ]
+    }));
+
+    const handler = createHandler(mockConfig, (mockPool as unknown) as Pool);
+
+    const response = await handler(
+      (mockContext as unknown) as Context,
       "12345678901" as OrganizationFiscalCode
     );
 
-    expect(sql).toBe(expectedSql);
+    const mockExpressResponse = createMockExpressResponse();
+    response.apply(mockExpressResponse);
+
+    expect(mockExpressResponse.status).toHaveBeenCalledWith(500);
+  });
+
+  it("should return success on empty results", async () => {
+    mockQueryCommand.mockImplementationOnce(async () => ({
+      command: "SELECT",
+      rowCount: 0,
+      rows: [
+        {
+          sourceEmail: "source@email.com",
+          sourceId: "1234",
+          sourceName: "TestName",
+          sourceSurname: "TestSurname",
+          completed: 2,
+          initial: 1,
+          failed: 0,
+          processing: 2
+        }
+      ]
+    }));
+
+    const handler = createHandler(mockConfig, (mockPool as unknown) as Pool);
+
+    const response = await handler(
+      (mockContext as unknown) as Context,
+      "12345678901" as OrganizationFiscalCode
+    );
+  });
+
+  it("should return success on empty results", async () => {
+    mockQueryCommand.mockImplementationOnce(async () => ({
+      command: "SELECT",
+      rowCount: 0,
+      rows: []
+    }));
+
+    const handler = createHandler(mockConfig, (mockPool as unknown) as Pool);
+
+    const response = await handler(
+      (mockContext as unknown) as Context,
+      "12345678901" as OrganizationFiscalCode
+    );
+
+    expect(response.kind).toBe("IResponseSuccessJson");
+    const mockExpressResponse = createMockExpressResponse();
+    response.apply(mockExpressResponse);
+    expect(mockExpressResponse.status).toHaveBeenCalledWith(200);
+    expect(mockExpressResponse.json).toHaveBeenCalledWith({ items: [] });
+  });
+
+  it("should return success on retireved data", async () => {
+    mockQueryCommand.mockImplementationOnce(async () => ({
+      command: "SELECT",
+      rowCount: 0,
+      rows: [
+        {
+          sourceEmail: "source@email.com",
+          sourceId: "1234",
+          sourceName: "TestName",
+          sourceSurname: "TestSurname",
+          completed: 2,
+          initial: 1,
+          failed: 0,
+          processing: 2
+        }
+      ]
+    }));
+
+    const handler = createHandler(mockConfig, (mockPool as unknown) as Pool);
+
+    const response = await handler(
+      (mockContext as unknown) as Context,
+      "12345678901" as OrganizationFiscalCode
+    );
+
+    expect(response.kind).toBe("IResponseSuccessJson");
+    const mockExpressResponse = createMockExpressResponse();
+    response.apply(mockExpressResponse);
+    expect(mockExpressResponse.status).toHaveBeenCalledWith(200);
+    expect(mockExpressResponse.json).toHaveBeenCalledWith({
+      items: [
+        {
+          delegate: {
+            sourceEmail: "source@email.com",
+            sourceId: "1234",
+            sourceName: "TestName",
+            sourceSurname: "TestSurname"
+          },
+          status: { completed: 2, initial: 1, failed: 0, processing: 2 }
+        }
+      ]
+    });
   });
 });
