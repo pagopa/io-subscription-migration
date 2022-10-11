@@ -64,6 +64,9 @@ export const createSqlStatus = (dbConfig: IDecodableConfigPostgreSQL) => (
       "sourceEmail",
       knex({
         client: "pg"
+      }).raw(`max("m"."updateAt") as "lastUpdate"`),
+      knex({
+        client: "pg"
       }).raw(
         `sum(CASE WHEN "m"."status" = 'INITIAL' THEN 1 ELSE 0 END) as initial`
       ),
@@ -87,6 +90,12 @@ export const createSqlStatus = (dbConfig: IDecodableConfigPostgreSQL) => (
     .from(`${dbConfig.DB_TABLE} as m`)
     .where({ organizationFiscalCode })
     .groupBy(["sourceId", "sourceName", "sourceSurname", "sourceEmail"])
+    .having(
+      knex({
+        client: "pg"
+      }).raw(`sum(CASE WHEN "m"."status" <> 'INITIAL' THEN 1 ELSE 0 END) > 0`)
+    )
+    .orderBy("lastUpdate", "desc")
     .toQuery() as NonEmptyString;
 
 /*
