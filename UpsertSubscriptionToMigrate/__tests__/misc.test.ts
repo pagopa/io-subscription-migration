@@ -177,7 +177,7 @@ describe("createUpsertSql", () => {
       serviceVersion: 0,
       serviceName: "Service Test"
     } as unknown) as MigrationRowDataTable;
-    const expected = `insert into "SelfcareIOSubscriptionMigrations"."migrations" ("organizationFiscalCode", "serviceName", "serviceVersion", "sourceEmail", "sourceId", "sourceName", "sourceSurname", "subscriptionId") values ('12345678901', 'Service Test', 0, 'source email', '01EYNPZXQJF9A2DBTH5GYB951V', 'source name', 'source surname', 'subId1') on conflict ("subscriptionId") do update set "organizationFiscalCode" = excluded."organizationFiscalCode", "serviceVersion" = excluded."serviceVersion", "serviceName" = excluded."serviceName" where "migrations"."status" < 'PENDING' and "migrations"."serviceVersion" < excluded."serviceVersion"`;
+    const expected = `insert into "SelfcareIOSubscriptionMigrations"."migrations" ("organizationFiscalCode", "serviceName", "serviceVersion", "sourceEmail", "sourceId", "sourceName", "sourceSurname", "subscriptionId") values ('12345678901', 'Service Test', 0, 'source email', '01EYNPZXQJF9A2DBTH5GYB951V', 'source name', 'source surname', 'subId1') on conflict ("subscriptionId") do update set "organizationFiscalCode" = excluded."organizationFiscalCode", "serviceVersion" = excluded."serviceVersion", "serviceName" = excluded."serviceName" where "migrations"."status" < 'PENDING' and "migrations"."serviceVersion" <= excluded."serviceVersion"`;
 
     const sql = createUpsertSql(config)(data);
     expect(sql.trim()).toBe(expected.trim());
@@ -198,7 +198,7 @@ describe("createUpsertSql", () => {
       serviceVersion: 0,
       serviceName: "Service Test"
     } as unknown) as MigrationRowDataTable;
-    const expected = `insert into "SelfcareIOSubscriptionMigrations"."migrations" ("organizationFiscalCode", "serviceName", "serviceVersion", "sourceEmail", "sourceId", "sourceName", "sourceSurname", "subscriptionId") values ('12345678901', 'Service Test', 0, 'l''email', '01EYNPZXQJF9A2DBTH5GYB951V', 'source name', 'source surname', 'subId2') on conflict ("subscriptionId") do update set "organizationFiscalCode" = excluded."organizationFiscalCode", "serviceVersion" = excluded."serviceVersion", "serviceName" = excluded."serviceName" where "migrations"."status" < 'PENDING' and "migrations"."serviceVersion" < excluded."serviceVersion"`;
+    const expected = `insert into "SelfcareIOSubscriptionMigrations"."migrations" ("organizationFiscalCode", "serviceName", "serviceVersion", "sourceEmail", "sourceId", "sourceName", "sourceSurname", "subscriptionId") values ('12345678901', 'Service Test', 0, 'l''email', '01EYNPZXQJF9A2DBTH5GYB951V', 'source name', 'source surname', 'subId2') on conflict ("subscriptionId") do update set "organizationFiscalCode" = excluded."organizationFiscalCode", "serviceVersion" = excluded."serviceVersion", "serviceName" = excluded."serviceName" where "migrations"."status" < 'PENDING' and "migrations"."serviceVersion" <= excluded."serviceVersion"`;
 
     const sql = createUpsertSql(config)(data);
     expect(sql.trim()).toBe(expected.trim());

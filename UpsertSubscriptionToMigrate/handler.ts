@@ -169,7 +169,7 @@ export const createUpsertSql = (dbConfig: IDecodableConfigPostgreSQL) => (
     .merge(["organizationFiscalCode", "serviceVersion", "serviceName"])
     .where(`${dbConfig.DB_TABLE}.status`, "<", excludeStatus)
     .and.whereRaw(
-      `"${dbConfig.DB_TABLE}"."serviceVersion" < excluded."serviceVersion"`
+      `"${dbConfig.DB_TABLE}"."serviceVersion" <= excluded."serviceVersion"`
     )
     .toQuery() as NonEmptyString;
 };
