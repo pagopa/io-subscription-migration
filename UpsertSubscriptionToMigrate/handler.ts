@@ -144,6 +144,11 @@ export const mapDataToTableRow = (
     readonly apimSubscription: ApimSubscriptionResponse;
   }
 ): MigrationRowDataTable => ({
+  // At insert time, is the same value as isVisible
+  // At update time, it will be evalued against current and previous isVisible
+  // Hence, we can assign the very same value and let the DB engine do the correct evaluation
+  hasBeenBooleanOnce: retrievedDocument.isVisible,
+  isVisible: retrievedDocument.isVisible,
   organizationFiscalCode: retrievedDocument.organizationFiscalCode,
 
   serviceName: retrievedDocument.serviceName || "",
@@ -159,14 +164,23 @@ export const createUpsertSql = (dbConfig: IDecodableConfigPostgreSQL) => (
   data: MigrationRowDataTable,
   excludeStatus: "PENDING" = "PENDING"
 ): NonEmptyString => {
-  return knex({
+  const k = knex({
     client: "pg"
-  })
+  });
+  return k
     .withSchema(dbConfig.DB_SCHEMA)
     .table(dbConfig.DB_TABLE)
     .insert(data)
     .onConflict("subscriptionId")
-    .merge(["organizationFiscalCode", "serviceVersion", "serviceName"])
+    .merge({
+      hasBeenVisibleOnce: k.raw(
+        `"hasBeenVisibleOnce" OR excluded."hasBeenVisibleOnce"`
+      ),
+      isVisible: k.raw(`excluded."isVisible"`),
+      organizationFiscalCode: k.raw(`excluded."organizationFiscalCode"`),
+      serviceName: k.raw(`excluded."serviceName"`),
+      serviceVersion: k.raw(`excluded."serviceVersion"`)
+    })
     .where(`${dbConfig.DB_TABLE}.status`, "<", excludeStatus)
     .and.whereRaw(
       `"${dbConfig.DB_TABLE}"."serviceVersion" <= excluded."serviceVersion"`
@@ -204,16 +218,19 @@ export const storeDocumentApimToDatabase = (
             ? // continue processing incoming document
               pipe(
                 { apimSubscription, apimUser },
+
+                // Upsert subscription
                 apimData => mapDataToTableRow(retrievedDocument, apimData),
                 createUpsertSql(config),
                 sql => queryDataTable(pool, sql),
+                TE.mapLeft(err => toPostgreSQLError(err.message)),
+
                 res => {
                   trackProcessedServiceDocument(telemetryClient)(
                     retrievedDocument
                   );
                   return res;
-                },
-                TE.mapLeft(err => toPostgreSQLError(err.message))
+                }
               )
             : // processing is successful, just ignore the document
               TE.of<DomainError, QueryResult | void>(

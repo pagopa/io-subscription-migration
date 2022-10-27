@@ -17,6 +17,8 @@ export const OwnerData = t.intersection(
 
 export type MigrationRowDataTable = t.TypeOf<typeof MigrationRowDataTable>;
 export const MigrationRowDataTable = t.interface({
+  hasBeenBooleanOnce: t.boolean,
+  isVisible: t.boolean,
   organizationFiscalCode: OrganizationFiscalCode,
   serviceName: t.string,
   serviceVersion: t.number,
