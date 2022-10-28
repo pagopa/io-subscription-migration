@@ -41,7 +41,8 @@ import {
 
 import {
   trackProcessedServiceDocument,
-  trackIgnoredIncomingDocument
+  trackIgnoredIncomingDocument,
+  trackFailedQueryOnDocumentProcessing
 } from "../utils/tracking";
 import { queryDataTable } from "../utils/db";
 import { IncomingQueueItem } from "./types";
@@ -174,7 +175,7 @@ export const createUpsertSql = (dbConfig: IDecodableConfigPostgreSQL) => (
     .onConflict("subscriptionId")
     .merge({
       hasBeenVisibleOnce: k.raw(
-        `"hasBeenVisibleOnce" OR excluded."hasBeenVisibleOnce"`
+        `"${dbConfig.DB_SCHEMA}".${dbConfig.DB_TABLE}."hasBeenVisibleOnce" OR excluded."hasBeenVisibleOnce"`
       ),
       isVisible: k.raw(`excluded."isVisible"`),
       organizationFiscalCode: k.raw(`excluded."organizationFiscalCode"`),
@@ -223,14 +224,22 @@ export const storeDocumentApimToDatabase = (
                 apimData => mapDataToTableRow(retrievedDocument, apimData),
                 createUpsertSql(config),
                 sql => queryDataTable(pool, sql),
+
+                TE.mapLeft(err => {
+                  trackFailedQueryOnDocumentProcessing(telemetryClient)(
+                    retrievedDocument,
+                    err
+                  );
+                  return err;
+                }),
                 TE.mapLeft(err => toPostgreSQLError(err.message)),
 
-                res => {
+                TE.map(_ => {
                   trackProcessedServiceDocument(telemetryClient)(
                     retrievedDocument
                   );
-                  return res;
-                }
+                  return _;
+                })
               )
             : // processing is successful, just ignore the document
               TE.of<DomainError, QueryResult | void>(
