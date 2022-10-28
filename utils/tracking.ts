@@ -1,5 +1,6 @@
 import { RetrievedService } from "@pagopa/io-functions-commons/dist/src/models/service";
 import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
+import { DatabaseError } from "pg";
 import { initTelemetryClient } from "./appinsight";
 
 /**
@@ -60,6 +61,35 @@ export const trackProcessedServiceDocument = (
     name: "selfcare.subsmigrations.services.processed-service",
     properties: {
       documentId: retrievedDocument.id,
+      serviceId: retrievedDocument.serviceId,
+      // the time elapsed between when the doc has been created and when it has been processed
+      timeDifference: Math.floor(
+        // Cosmos store ts in second so we need to translate in milliseconds
+        // eslint-disable-next-line no-underscore-dangle
+        Date.now() - retrievedDocument._ts * 1000
+      )
+    },
+    tagOverrides: { samplingEnabled: "false" }
+  });
+};
+
+/**
+ * Track when a Service document processing fails
+ *
+ * @param telemetryClient
+ * @returns
+ */
+export const trackFailedQueryOnDocumentProcessing = (
+  telemetryClient: ReturnType<typeof initTelemetryClient>
+) => (retrievedDocument: RetrievedService, error: DatabaseError): void => {
+  telemetryClient.trackEvent({
+    name:
+      "selfcare.subsmigrations.services.failed-query-on-document-processing",
+    properties: {
+      documentId: retrievedDocument.id,
+      errorMessage: error.message,
+      hint: error.hint,
+      query: error.internalQuery,
       serviceId: retrievedDocument.serviceId,
       // the time elapsed between when the doc has been created and when it has been processed
       timeDifference: Math.floor(
