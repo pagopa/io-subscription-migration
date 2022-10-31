@@ -121,6 +121,7 @@ export const processResponseFromLatestMigrationResultSet = (
         sourceName: row.sourceName,
         sourceSurname: row.sourceSurname
       },
+      lastUpdate: row.lastUpdate,
       status: {
         completed: Number(row.completed),
         failed: Number(row.failed),
@@ -144,7 +145,6 @@ export const createHandler = (config: IConfig, pool: Pool): Handler => async (
     TE.mapLeft(e =>
       ResponseErrorInternal(`Failed to execute query on database: ${e.message}`)
     ),
-    TE.mapLeft(_ => _),
     TE.chainW(
       flow(
         processResponseFromLatestMigrationResultSet,

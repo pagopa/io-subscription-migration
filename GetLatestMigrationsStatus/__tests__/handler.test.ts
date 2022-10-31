@@ -139,6 +139,7 @@ describe("Create Handler Test", () => {
   });
 
   it("should return success on retireved data", async () => {
+    const aDate = new Date();
     mockQueryCommand.mockImplementationOnce(async () => ({
       command: "SELECT",
       rowCount: 0,
@@ -151,7 +152,8 @@ describe("Create Handler Test", () => {
           completed: 2,
           initial: 1,
           failed: 0,
-          processing: 2
+          processing: 2,
+          lastUpdate: aDate.toISOString()
         }
       ]
     }));
@@ -176,6 +178,7 @@ describe("Create Handler Test", () => {
             sourceName: "TestName",
             sourceSurname: "TestSurname"
           },
+          lastUpdate: new Date(aDate),
           status: { completed: 2, initial: 1, failed: 0, processing: 2 }
         }
       ]

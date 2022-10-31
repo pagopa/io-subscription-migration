@@ -168,8 +168,11 @@ definitions:
       properties:
         delegate:
           $ref: "#/definitions/Delegate"
+        lastUpdate:
+          $ref: "#/definitions/Timestamp"
       required:
         - delegate
+        - lastUpdate
   Delegate:
     type: object
     properties:
@@ -245,6 +248,12 @@ definitions:
           An absolute URI that identifies the specific occurrence of the
           problem.
           It may or may not yield further information if dereferenced.
+  Timestamp:
+    type: string
+    format: UTCISODateFromString
+    description: A date-time field in ISO-8601 format and UTC timezone.
+    x-import: '@pagopa/ts-commons/lib/dates'
+    example: '2018-10-13T00:00:00.000Z'
 securityDefinitions:
   SubscriptionKey:
     type: apiKey
