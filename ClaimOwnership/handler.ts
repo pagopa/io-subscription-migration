@@ -31,6 +31,7 @@ import { SubscriptionStatus } from "../GetOwnershipClaimStatus/handler";
 import { queryDataTable } from "../utils/db";
 
 import { ClaimOrganizationSubscriptions } from "./types";
+import { MigrationsByOrganization } from "../utils/query";
 
 type Handler = (
   context: Context,
@@ -48,16 +49,10 @@ export const generateUpdateSubscriptionStatusSQL = (
   sourceId: NonEmptyString,
   status: SubscriptionStatus
 ): NonEmptyString =>
-  knex({
-    client: "pg"
-  })
-    .withSchema(dbConfig.DB_SCHEMA)
-    .table(dbConfig.DB_TABLE)
-    .where({ organizationFiscalCode })
+  MigrationsByOrganization(dbConfig, organizationFiscalCode)
     .where({ sourceId })
     .where("status", "!=", SubscriptionStatus.COMPLETED)
     .update({ status })
-    .from(dbConfig.DB_TABLE)
     .toQuery() as NonEmptyString;
 
 export const updateSubscriptionStatus = (config: IConfig, connect: Pool) => (

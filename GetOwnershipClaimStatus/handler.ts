@@ -30,6 +30,7 @@ import {
   toPostgreSQLError,
   toPostgreSQLErrorMessage
 } from "../models/DomainErrors";
+import { MigrationsByOrganization } from "../utils/query";
 
 export const enum SubscriptionStatus {
   COMPLETED = "COMPLETED",
@@ -42,15 +43,9 @@ export const createSql = (dbConfig: IDecodableConfigPostgreSQL) => (
   organizationFiscalCode: OrganizationFiscalCode,
   sourceId: NonEmptyString
 ): NonEmptyString =>
-  knex({
-    client: "pg"
-  })
-    .withSchema(dbConfig.DB_SCHEMA)
-    .table(dbConfig.DB_TABLE)
+  MigrationsByOrganization(dbConfig, organizationFiscalCode)
     .select("status")
     .count("status")
-    .from(dbConfig.DB_TABLE)
-    .where({ organizationFiscalCode })
     .and.where({ sourceId })
     .groupBy("status")
     .toQuery() as NonEmptyString;

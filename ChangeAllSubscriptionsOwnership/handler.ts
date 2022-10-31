@@ -8,7 +8,6 @@ import * as E from "fp-ts/lib/Either";
 import * as RA from "fp-ts/lib/ReadonlyArray";
 import * as TE from "fp-ts/lib/TaskEither";
 import { Pool } from "pg";
-import knex from "knex";
 import * as t from "io-ts";
 import {
   IConfig,
@@ -27,6 +26,7 @@ import {
 } from "../models/DomainErrors";
 import { queryDataTable } from "../utils/db";
 import { ApimOrganizationUserResponse } from "../models/DomainApimResponse";
+import { MigrationsByOrganization } from "../utils/query";
 import { ClaimOrganizationSubscriptions, ClaimSubscriptionItem } from "./type";
 
 export const SubscriptionResultRow = t.interface({
@@ -50,14 +50,8 @@ export const createSelectSubscriptions = (
   sourceId: NonEmptyString,
   statusToExclude: SubscriptionStatus
 ): NonEmptyString =>
-  knex({
-    client: "pg"
-  })
-    .withSchema(dbConfig.DB_SCHEMA)
-    .table(dbConfig.DB_TABLE)
+  MigrationsByOrganization(dbConfig, organizationFiscalCode)
     .select("subscriptionId")
-    .from(dbConfig.DB_TABLE)
-    .where({ organizationFiscalCode })
     .and.where({ sourceId })
     .andWhereNot({ status: statusToExclude })
     .toQuery() as NonEmptyString;
