@@ -21,7 +21,6 @@ import * as E from "fp-ts/Either";
 import * as TE from "fp-ts/TaskEither";
 import { flow, pipe } from "fp-ts/lib/function";
 import { Pool } from "pg";
-import knex from "knex";
 import { ClaimProcedureStatus } from "../generated/definitions/ClaimProcedureStatus";
 import { IConfig, IDecodableConfigPostgreSQL } from "../utils/config";
 import { queryDataTable, ResultRow, ResultSet } from "../utils/db";

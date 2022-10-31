@@ -20,7 +20,6 @@ import {
 } from "@pagopa/ts-commons/lib/strings";
 import { Pool, QueryResult, QueryResultRow } from "pg";
 import { Context } from "@azure/functions";
-import { knex } from "knex";
 import { IConfig, IDecodableConfigPostgreSQL } from "../utils/config";
 import {
   IDbError,
@@ -30,8 +29,8 @@ import {
 import { SubscriptionStatus } from "../GetOwnershipClaimStatus/handler";
 import { queryDataTable } from "../utils/db";
 
-import { ClaimOrganizationSubscriptions } from "./types";
 import { MigrationsByOrganization } from "../utils/query";
+import { ClaimOrganizationSubscriptions } from "./types";
 
 type Handler = (
   context: Context,
