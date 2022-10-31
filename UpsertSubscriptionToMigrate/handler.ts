@@ -148,7 +148,7 @@ export const mapDataToTableRow = (
   // At insert time, is the same value as isVisible
   // At update time, it will be evalued against current and previous isVisible
   // Hence, we can assign the very same value and let the DB engine do the correct evaluation
-  hasBeenBooleanOnce: retrievedDocument.isVisible,
+  hasBeenVisibleOnce: retrievedDocument.isVisible,
   isVisible: retrievedDocument.isVisible,
   organizationFiscalCode: retrievedDocument.organizationFiscalCode,
 
