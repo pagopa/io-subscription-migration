@@ -20,7 +20,7 @@ describe("Array Delegates", () => {
   });
 
   it("should validate a valid Latest Operation response", () => {
-    const operations: LatestMigrationsResponse = {
+    const operations = {
       items: [
         {
           delegate: {
@@ -29,7 +29,7 @@ describe("Array Delegates", () => {
             sourceSurname: "TestSurname",
             sourceEmail: "test@email.com" as Email
           },
-
+          lastUpdate: new Date().toISOString(),
           status: { processing: 1, completed: 0, initial: 1, failed: 2 }
         },
         {
@@ -39,14 +39,13 @@ describe("Array Delegates", () => {
             sourceSurname: "TestSurname2",
             sourceEmail: "test@email.com" as Email
           },
-
+          lastUpdate: new Date().toISOString(),
           status: { processing: 1, completed: 0, initial: 1, failed: 2 }
         }
       ]
     };
 
     const res = LatestMigrationsResponse.decode(operations);
-
     expect(E.isRight(res)).toBe(true);
   });
 });
