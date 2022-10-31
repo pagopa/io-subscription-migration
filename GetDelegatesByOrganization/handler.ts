@@ -72,6 +72,8 @@ export const createSqlDelegates = (dbConfig: IDecodableConfigPostgreSQL) => (
     .where({ organizationFiscalCode })
     // ignore subs that has never been visible, probably tests or drafts that aren't worth being migrated
     .and.where({ hasBeenVisibleOnce: true })
+    // some subs have "deleted" in their name, we can skip them
+    .and.not.whereILike("serviceName", "%deleted%")
     .groupBy(["sourceId", "sourceName", "sourceSurname", "sourceEmail"])
     .toQuery() as NonEmptyString;
 

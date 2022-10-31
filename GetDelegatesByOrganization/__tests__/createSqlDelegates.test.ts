@@ -17,7 +17,7 @@ const mockDBConfig = {
 
 describe("Create SQL for Delegates", () => {
   it("should generate a valid SQL", () => {
-    const expectedSql = `select "sourceId", "sourceName", "sourceSurname", "sourceEmail", count("subscriptionId") as "subscriptionCounter" from "Schema"."Table" where "organizationFiscalCode" = '12345678901' and "hasBeenVisibleOnce" = true group by "sourceId", "sourceName", "sourceSurname", "sourceEmail"`;
+    const expectedSql = `select "sourceId", "sourceName", "sourceSurname", "sourceEmail", count("subscriptionId") as "subscriptionCounter" from "Schema"."Table" where "organizationFiscalCode" = '12345678901' and "hasBeenVisibleOnce" = true and "serviceName" not ilike '%deleted%' group by "sourceId", "sourceName", "sourceSurname", "sourceEmail"`;
     const sql = createSqlDelegates(mockDBConfig)(
       "12345678901" as OrganizationFiscalCode
     );
