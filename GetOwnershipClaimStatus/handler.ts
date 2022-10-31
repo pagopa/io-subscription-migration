@@ -21,7 +21,6 @@ import * as E from "fp-ts/Either";
 import * as TE from "fp-ts/TaskEither";
 import { flow, pipe } from "fp-ts/lib/function";
 import { Pool } from "pg";
-import knex from "knex";
 import { ClaimProcedureStatus } from "../generated/definitions/ClaimProcedureStatus";
 import { IConfig, IDecodableConfigPostgreSQL } from "../utils/config";
 import { queryDataTable, ResultRow, ResultSet } from "../utils/db";
@@ -30,6 +29,7 @@ import {
   toPostgreSQLError,
   toPostgreSQLErrorMessage
 } from "../models/DomainErrors";
+import { MigrationsByOrganization } from "../utils/query";
 
 export const enum SubscriptionStatus {
   COMPLETED = "COMPLETED",
@@ -42,15 +42,9 @@ export const createSql = (dbConfig: IDecodableConfigPostgreSQL) => (
   organizationFiscalCode: OrganizationFiscalCode,
   sourceId: NonEmptyString
 ): NonEmptyString =>
-  knex({
-    client: "pg"
-  })
-    .withSchema(dbConfig.DB_SCHEMA)
-    .table(dbConfig.DB_TABLE)
+  MigrationsByOrganization(dbConfig, organizationFiscalCode)
     .select("status")
     .count("status")
-    .from(dbConfig.DB_TABLE)
-    .where({ organizationFiscalCode })
     .and.where({ sourceId })
     .groupBy("status")
     .toQuery() as NonEmptyString;

@@ -21,7 +21,10 @@ const mockDBConfig = {
   DB_TABLE: "Table" as NonEmptyString,
   DB_USER: "User" as NonEmptyString
 };
-const mockConfig = ({} as unknown) as IConfig;
+const mockConfig = ({
+  DB_SCHEMA: "mySchema",
+  DB_TABLE: "myTable"
+} as unknown) as IConfig;
 
 const mockQueryCommand = jest.fn().mockImplementation(async () => ({
   command: "SELECT",

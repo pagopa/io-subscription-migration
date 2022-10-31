@@ -23,7 +23,7 @@ describe("UpdateSqlSubscription", () => {
       SubscriptionStatus.PROCESSING
     );
     expect(updateQuery).toBe(
-      `update "Schema"."Table" set "status" = 'PROCESSING' where "organizationFiscalCode" = '01234567890' and "sourceId" = '123' and "status" != 'COMPLETED'`
+      `update "Schema"."Table" set "status" = 'PROCESSING' where "organizationFiscalCode" = '01234567890' and "hasBeenVisibleOnce" = true and "serviceName" not ilike '%deleted%' and "sourceId" = '123' and "status" != 'COMPLETED'`
     );
   });
 });

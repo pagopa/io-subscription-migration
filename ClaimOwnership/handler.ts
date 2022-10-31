@@ -20,7 +20,6 @@ import {
 } from "@pagopa/ts-commons/lib/strings";
 import { Pool, QueryResult, QueryResultRow } from "pg";
 import { Context } from "@azure/functions";
-import { knex } from "knex";
 import { IConfig, IDecodableConfigPostgreSQL } from "../utils/config";
 import {
   IDbError,
@@ -30,6 +29,7 @@ import {
 import { SubscriptionStatus } from "../GetOwnershipClaimStatus/handler";
 import { queryDataTable } from "../utils/db";
 
+import { MigrationsByOrganization } from "../utils/query";
 import { ClaimOrganizationSubscriptions } from "./types";
 
 type Handler = (
@@ -48,16 +48,10 @@ export const generateUpdateSubscriptionStatusSQL = (
   sourceId: NonEmptyString,
   status: SubscriptionStatus
 ): NonEmptyString =>
-  knex({
-    client: "pg"
-  })
-    .withSchema(dbConfig.DB_SCHEMA)
-    .table(dbConfig.DB_TABLE)
-    .where({ organizationFiscalCode })
+  MigrationsByOrganization(dbConfig, organizationFiscalCode)
     .where({ sourceId })
     .where("status", "!=", SubscriptionStatus.COMPLETED)
     .update({ status })
-    .from(dbConfig.DB_TABLE)
     .toQuery() as NonEmptyString;
 
 export const updateSubscriptionStatus = (config: IConfig, connect: Pool) => (

@@ -90,7 +90,7 @@ describe("createSql", () => {
     );
 
     expect(res).toBe(
-      `select "status", count("status") from "Schema"."Table" where "organizationFiscalCode" = '12345678901' and "sourceId" = '999' group by "status"`
+      `select "status", count("status") from "Schema"."Table" where "organizationFiscalCode" = '12345678901' and "hasBeenVisibleOnce" = true and "serviceName" not ilike '%deleted%' and "sourceId" = '999' group by "status"`
     );
   });
 });

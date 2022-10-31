@@ -18,7 +18,7 @@ describe("Generate Query string for get all subscriotions owned by sourceId belo
       "123" as NonEmptyString,
       SubscriptionStatus.COMPLETED
     );
-    const expected = `select "subscriptionId" from "Schema"."Table" where "organizationFiscalCode" = '12345678901' and "sourceId" = '123' and not "status" = 'COMPLETED'`;
+    const expected = `select "subscriptionId" from "Schema"."Table" where "organizationFiscalCode" = '12345678901' and "hasBeenVisibleOnce" = true and "serviceName" not ilike '%deleted%' and "sourceId" = '123' and not "status" = 'COMPLETED'`;
     expect(query).toBe(expected);
   });
 });
