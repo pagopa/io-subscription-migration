@@ -81,6 +81,8 @@ export const createSqlStatus = (dbConfig: IDecodableConfigPostgreSQL) => (
     ])
     .from(`${dbConfig.DB_TABLE} as m`)
     .where({ organizationFiscalCode })
+    // ignore subs that has never been visible, probably tests or drafts that aren't worth being migrated
+    .and.where({ hasBeenVisibleOnce: true })
     .groupBy(["sourceId", "sourceName", "sourceSurname", "sourceEmail"])
     .having(
       // consider only delegates for which at least one migration has started
