@@ -33,6 +33,7 @@ import {
 } from "../models/DomainErrors";
 import { IConfig, IDecodableConfigPostgreSQL } from "../utils/config";
 import { queryDataTable } from "../utils/db";
+import { MigrationsByOrganization } from "../utils/query";
 
 // set Postgres as default db target for the query builder
 const knex = knexBase({
@@ -57,38 +58,30 @@ where the latest 4 fields are the sum for every subscriptions in the specific st
 export const createSqlStatus = (dbConfig: IDecodableConfigPostgreSQL) => (
   organizationFiscalCode: OrganizationFiscalCode
 ): NonEmptyString =>
-  knex
-    .withSchema(dbConfig.DB_SCHEMA)
-    .table(dbConfig.DB_TABLE)
+  MigrationsByOrganization(dbConfig, organizationFiscalCode)
     .select([
       "sourceId",
       "sourceName",
       "sourceSurname",
       "sourceEmail",
-      knex.raw(`max("m"."updateAt") as "lastUpdate"`),
+      knex.raw(`max("updateAt") as "lastUpdate"`),
       knex.raw(
-        `sum(CASE WHEN "m"."status" = 'INITIAL' THEN 1 ELSE 0 END) as initial`
+        `sum(CASE WHEN "status" = 'INITIAL' THEN 1 ELSE 0 END) as initial`
       ),
       knex.raw(
-        `sum(CASE WHEN "m"."status" = 'PROCESSING' THEN 1 ELSE 0 END) as processing`
+        `sum(CASE WHEN "status" = 'PROCESSING' THEN 1 ELSE 0 END) as processing`
       ),
       knex.raw(
-        `sum(CASE WHEN "m"."status" = 'FAILED' THEN 1 ELSE 0 END) as failed`
+        `sum(CASE WHEN "status" = 'FAILED' THEN 1 ELSE 0 END) as failed`
       ),
       knex.raw(
-        `sum(CASE WHEN "m"."status" = 'COMPLETED' THEN 1 ELSE 0 END) as completed`
+        `sum(CASE WHEN "status" = 'COMPLETED' THEN 1 ELSE 0 END) as completed`
       )
     ])
-    .from(`${dbConfig.DB_TABLE} as m`)
-    .where({ organizationFiscalCode })
-    // ignore subs that has never been visible, probably tests or drafts that aren't worth being migrated
-    .and.where({ hasBeenVisibleOnce: true })
-    // some subs have "deleted" in their name, we can skip them
-    .and.not.whereILike("serviceName", "%deleted%")
     .groupBy(["sourceId", "sourceName", "sourceSurname", "sourceEmail"])
     .having(
       // consider only delegates for which at least one migration has started
-      knex.raw(`sum(CASE WHEN "m"."status" <> 'INITIAL' THEN 1 ELSE 0 END) > 0`)
+      knex.raw(`sum(CASE WHEN "status" <> 'INITIAL' THEN 1 ELSE 0 END) > 0`)
     )
     .orderBy("lastUpdate", "desc")
     .toQuery() as NonEmptyString;
