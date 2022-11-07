@@ -224,7 +224,7 @@ definitions:
         lastUpdate:
           $ref: "#/definitions/Timestamp"
       required:
-        - delegate
+        - organization
         - lastUpdate
   Delegate:
     type: object
