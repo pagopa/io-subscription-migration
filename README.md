@@ -29,12 +29,7 @@ docker run --rm -d \
     postgres
 
 # Run sql migration scripts
-./scripts/run_flyway_on_server.sh migrate \
-    $DB_NAME 
-    $DB_HOST $DB_PORT \
-    $DB_USER $DB_PASSWORD \
-    schema/migrations \
-    $DB_SCHEMA
+./scripts/run_flyway_on_server.sh migrate $DB_NAME $DB_HOST $DB_PORT $DB_USER $DB_PASSWORD schema/migrations $DB_SCHEMA
 
 # Execute tests
 yarn test:schema
