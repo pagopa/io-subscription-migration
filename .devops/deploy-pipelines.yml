@@ -65,7 +65,31 @@ stages:
           - script: |
               echo "We assume this reference to be a valid release: $(Build.SourceBranch). Therefore, there is no need to bundle a new release."
             displayName: 'Skip release bundle'
+  
+  - stage: Apply_Database_Schema
+    dependsOn: 
+      - Release
+    pool:
+      name: io-prod-linux
+    jobs:
+      - job: make_migration
+        steps:
+          - task: AzureCLI@2
+            displayName: migrate db schema
+            inputs:
+              azureSubscription: '$(PRODUCTION_AZURE_SUBSCRIPTION)'
+              scriptType: "bash"
+              scriptLocation: "inlineScript"
+              failOnStandardError: false
+              inlineScript: |
+                set -e
+                
+                # THIS IS THE PRODUCTION SCHEMA NAME, SO PLEASE DON'T CHANGE IT
+                SCHEMA_NAME=SelfcareIOSubscriptionMigrations
 
+                ./scripts/run_flyway_on_azure.sh migrate db PROD-IO schema/migrations "${SCHEMA_NAME}" \
+                  && echo "Migration successful" \
+                  || { echo "Migration failed"; exit 1; }
 
   # Prepare Artifact
   - stage: Deploy_staging

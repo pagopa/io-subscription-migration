@@ -82,3 +82,20 @@ stages:
         - script: |
             yarn test:coverage
           displayName: 'Unit tests exec'
+
+      - job: sql_schema_tests
+        steps:
+        - script: |
+            docker run --rm -d \
+              -e POSTGRES_DB=db \
+              -e POSTGRES_PASSWORD=mysecretpassword \
+              -p 5432:5432 \
+              postgres
+          displayName: 'Start PostgresSQL instance'
+
+        - script: |
+            ./scripts/run_flyway_on_server.sh migrate db localhost 5432 postgres mysecretpassword schema/migrations MySchema \
+              && echo "Migration successful" \
+              || { echo "Migration failed"; exit 1; }
+          displayName: 'Play migrations'
+          
