@@ -3,6 +3,9 @@ import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
 import { DatabaseError } from "pg";
 import { initTelemetryClient } from "./appinsight";
 
+const eventName = (name: string): string =>
+  `selfcare.subsmigrations.services.${name}`;
+
 /**
  * Track when an incoming service document is invalid
  *
@@ -16,7 +19,7 @@ export const trackInvalidIncomingDocument = (
   reason: string = ""
 ): void => {
   telemetryClient.trackEvent({
-    name: "selfcare.subsmigrations.services.invalid-incoming-document",
+    name: eventName(`invalid-incoming-document`),
     properties: {
       documentId: (d as RetrievedService).id,
       reason
@@ -38,7 +41,7 @@ export const trackIgnoredIncomingDocument = (
   reason: string = ""
 ): void => {
   telemetryClient.trackEvent({
-    name: "selfcare.subsmigrations.services.ignored-incoming-document",
+    name: eventName(`ignored-incoming-document`),
     properties: {
       documentId: (d as RetrievedService).id,
       reason
@@ -58,7 +61,7 @@ export const trackProcessedServiceDocument = (
   telemetryClient: ReturnType<typeof initTelemetryClient>
 ) => (retrievedDocument: RetrievedService): void => {
   telemetryClient.trackEvent({
-    name: "selfcare.subsmigrations.services.processed-service",
+    name: eventName(`processed-service`),
     properties: {
       documentId: retrievedDocument.id,
       serviceId: retrievedDocument.serviceId,
@@ -83,8 +86,7 @@ export const trackFailedQueryOnDocumentProcessing = (
   telemetryClient: ReturnType<typeof initTelemetryClient>
 ) => (retrievedDocument: RetrievedService, error: DatabaseError): void => {
   telemetryClient.trackEvent({
-    name:
-      "selfcare.subsmigrations.services.failed-query-on-document-processing",
+    name: eventName(`processed-service.failed-query-on-document-processing`),
     properties: {
       documentId: retrievedDocument.id,
       errorMessage: error.message,
@@ -112,7 +114,7 @@ export const trackMigratedServiceDocument = (
   telemetryClient: ReturnType<typeof initTelemetryClient>
 ) => (serviceId: NonEmptyString, targetId: NonEmptyString): void => {
   telemetryClient.trackEvent({
-    name: "selfcare.subsmigrations.services.migrated-service",
+    name: eventName(`migrated-service`),
     properties: {
       serviceId,
       targetId
@@ -131,7 +133,7 @@ export const trackFailedMigrationServiceDocument = (
   telemetryClient: ReturnType<typeof initTelemetryClient>
 ) => (serviceId: NonEmptyString, targetId: NonEmptyString): void => {
   telemetryClient.trackEvent({
-    name: "selfcare.subsmigrations.services.fail-migrated-service",
+    name: eventName(`fail-migrated-service`),
     properties: {
       serviceId,
       targetId
