@@ -1,3 +1,4 @@
+import { RetryContext } from "@azure/functions";
 import { RetrievedService } from "@pagopa/io-functions-commons/dist/src/models/service";
 import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
 import { DatabaseError } from "pg";
@@ -137,6 +138,47 @@ export const trackFailedMigrationServiceDocument = (
     properties: {
       serviceId,
       targetId
+    },
+    tagOverrides: { samplingEnabled: "false" }
+  });
+};
+
+/**
+ * Track when a batch of Service Documents arrive from the db change feed
+ *
+ * @param telemetryClient
+ * @returns
+ */
+export const trackIncomingServiceDocumentBatch = (
+  telemetryClient: ReturnType<typeof initTelemetryClient>
+) => (
+  documents: ReadonlyArray<unknown>,
+  retryContext: RetryContext | null
+): void => {
+  telemetryClient.trackEvent({
+    name: eventName(`incoming-service-documents-batch`),
+    properties: {
+      batchSize: documents.length,
+      retryContext
+    },
+    tagOverrides: { samplingEnabled: "false" }
+  });
+};
+
+/**
+ * Track when a Service document is enqueued to be processed
+ *
+ * @param telemetryClient
+ * @returns
+ */
+export const trackPeindingIncomingDocument = (
+  telemetryClient: ReturnType<typeof initTelemetryClient>
+) => (retrievedDocument: RetrievedService): void => {
+  telemetryClient.trackEvent({
+    name: eventName(`pending-incoming-document`),
+    properties: {
+      documentId: retrievedDocument.id,
+      serviceId: retrievedDocument.serviceId
     },
     tagOverrides: { samplingEnabled: "false" }
   });
