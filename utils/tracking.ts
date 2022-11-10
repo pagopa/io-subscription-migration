@@ -1,7 +1,11 @@
+import { RetryContext } from "@azure/functions";
 import { RetrievedService } from "@pagopa/io-functions-commons/dist/src/models/service";
 import { NonEmptyString } from "@pagopa/ts-commons/lib/strings";
 import { DatabaseError } from "pg";
 import { initTelemetryClient } from "./appinsight";
+
+const eventName = (name: string): string =>
+  `selfcare.subsmigrations.services.${name}`;
 
 /**
  * Track when an incoming service document is invalid
@@ -16,7 +20,7 @@ export const trackInvalidIncomingDocument = (
   reason: string = ""
 ): void => {
   telemetryClient.trackEvent({
-    name: "selfcare.subsmigrations.services.invalid-incoming-document",
+    name: eventName(`invalid-incoming-document`),
     properties: {
       documentId: (d as RetrievedService).id,
       reason
@@ -38,7 +42,7 @@ export const trackIgnoredIncomingDocument = (
   reason: string = ""
 ): void => {
   telemetryClient.trackEvent({
-    name: "selfcare.subsmigrations.services.ignored-incoming-document",
+    name: eventName(`ignored-incoming-document`),
     properties: {
       documentId: (d as RetrievedService).id,
       reason
@@ -58,7 +62,7 @@ export const trackProcessedServiceDocument = (
   telemetryClient: ReturnType<typeof initTelemetryClient>
 ) => (retrievedDocument: RetrievedService): void => {
   telemetryClient.trackEvent({
-    name: "selfcare.subsmigrations.services.processed-service",
+    name: eventName(`processed-service`),
     properties: {
       documentId: retrievedDocument.id,
       serviceId: retrievedDocument.serviceId,
@@ -83,8 +87,7 @@ export const trackFailedQueryOnDocumentProcessing = (
   telemetryClient: ReturnType<typeof initTelemetryClient>
 ) => (retrievedDocument: RetrievedService, error: DatabaseError): void => {
   telemetryClient.trackEvent({
-    name:
-      "selfcare.subsmigrations.services.failed-query-on-document-processing",
+    name: eventName(`processed-service.failed-query-on-document-processing`),
     properties: {
       documentId: retrievedDocument.id,
       errorMessage: error.message,
@@ -112,7 +115,7 @@ export const trackMigratedServiceDocument = (
   telemetryClient: ReturnType<typeof initTelemetryClient>
 ) => (serviceId: NonEmptyString, targetId: NonEmptyString): void => {
   telemetryClient.trackEvent({
-    name: "selfcare.subsmigrations.services.migrated-service",
+    name: eventName(`migrated-service`),
     properties: {
       serviceId,
       targetId
@@ -131,10 +134,51 @@ export const trackFailedMigrationServiceDocument = (
   telemetryClient: ReturnType<typeof initTelemetryClient>
 ) => (serviceId: NonEmptyString, targetId: NonEmptyString): void => {
   telemetryClient.trackEvent({
-    name: "selfcare.subsmigrations.services.fail-migrated-service",
+    name: eventName(`fail-migrated-service`),
     properties: {
       serviceId,
       targetId
+    },
+    tagOverrides: { samplingEnabled: "false" }
+  });
+};
+
+/**
+ * Track when a batch of Service Documents arrive from the db change feed
+ *
+ * @param telemetryClient
+ * @returns
+ */
+export const trackIncomingServiceDocumentBatch = (
+  telemetryClient: ReturnType<typeof initTelemetryClient>
+) => (
+  documents: ReadonlyArray<unknown>,
+  retryContext: RetryContext | null
+): void => {
+  telemetryClient.trackEvent({
+    name: eventName(`incoming-service-documents-batch`),
+    properties: {
+      batchSize: documents.length,
+      retryContext
+    },
+    tagOverrides: { samplingEnabled: "false" }
+  });
+};
+
+/**
+ * Track when a Service document is enqueued to be processed
+ *
+ * @param telemetryClient
+ * @returns
+ */
+export const trackPeindingIncomingDocument = (
+  telemetryClient: ReturnType<typeof initTelemetryClient>
+) => (retrievedDocument: RetrievedService): void => {
+  telemetryClient.trackEvent({
+    name: eventName(`pending-incoming-document`),
+    properties: {
+      documentId: retrievedDocument.id,
+      serviceId: retrievedDocument.serviceId
     },
     tagOverrides: { samplingEnabled: "false" }
   });

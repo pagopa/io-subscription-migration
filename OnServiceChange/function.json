@@ -20,5 +20,10 @@
       "direction": "out"
     }
   ],
+  "retry": {
+    "strategy": "fixedDelay",
+    "maxRetryCount": -1,
+    "delayInterval": "00:00:15"
+  },
   "scriptFile": "../dist/OnServiceChange/index.js"
 }
