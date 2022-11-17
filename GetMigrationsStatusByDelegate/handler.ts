@@ -119,7 +119,7 @@ export const createHandler = (config: IConfig, pool: Pool): Handler => async (
     TE.mapLeft(e =>
       ResponseErrorInternal(`Failed to execute query on database: ${e.message}`)
     ),
-    TE.chainW(
+    TE.chain(
       flow(
         processResponseFromResultSet,
         TE.fromEither,
