@@ -115,7 +115,7 @@ describe("Create Handler Test", () => {
     expect(mockExpressResponse.json).toHaveBeenCalledWith({ items: [] });
   });
 
-  it("should return success on retireved data", async () => {
+  it("should return success on retrieved data", async () => {
     const aDate = new Date();
     mockQueryCommand.mockImplementationOnce(async () => ({
       command: "SELECT",

@@ -9,7 +9,7 @@ const knex = knexBase({
 
 /**
  * Query chunk filering migration table by a single organization
- * Common filters are apllied, too
+ * Common filters are applied, too
  *
  * @param dbConfig
  * @param organizationFiscalCode
