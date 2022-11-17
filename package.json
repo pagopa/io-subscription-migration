@@ -15,6 +15,7 @@
     "predev": "npm-run-all generate build",
     "dev": "npm-run-all --parallel start watch",
     "test": "jest",
+    "test:schema": "jest --config=jest.config.schema.js ",
     "test:coverage": "jest --coverage",
     "lint": "eslint . -c .eslintrc.js --ext .ts,.tsx --cache",
     "lint-api": "oval validate -p openapi/index.yaml",

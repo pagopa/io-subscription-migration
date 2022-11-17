@@ -85,6 +85,8 @@ stages:
 
       - job: sql_schema_tests
         steps:
+        - template: templates/node-job-setup/template.yaml@pagopaCommons
+
         - script: |
             docker run --rm -d \
               -e POSTGRES_DB=db \
@@ -98,4 +100,15 @@ stages:
               && echo "Migration successful" \
               || { echo "Migration failed"; exit 1; }
           displayName: 'Play migrations'
+
+        - script: |
+            DB_HOST=localhost \
+            DB_PORT=5432 \
+            DB_USER=postgres \
+            DB_PASSWORD=mysecretpassword \
+            DB_SCHEMA=MySchema \
+            DB_NAME=db \
+            yarn test:schema
+          displayName: 'SQL tests exec'
+          
           
