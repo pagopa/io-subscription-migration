@@ -2,6 +2,8 @@ import { Email } from "../../generated/definitions/Email";
 import { OrganizationDelegates } from "../../generated/definitions/OrganizationDelegates";
 import * as E from "fp-ts/lib/Either";
 import { LatestMigrationsResponse } from "../../generated/definitions/LatestMigrationsResponse";
+import { MigrationsStatusByDelegateResponse } from "../../generated/definitions/MigrationsStatusByDelegateResponse";
+import { readableReport } from "@pagopa/ts-commons/lib/reporters";
 describe("Array Delegates", () => {
   it("should validate a valid Delegates response", () => {
     const delegates: OrganizationDelegates = [
@@ -47,5 +49,44 @@ describe("Array Delegates", () => {
 
     const res = LatestMigrationsResponse.decode(operations);
     expect(E.isRight(res)).toBe(true);
+  });
+});
+
+describe("MigrationsStatusByDelegateResponse", () => {
+  it("should decode a correct item", () => {
+    const value = {
+      items: [
+        {
+          organization: {
+            fiscalCode: "00000000000"
+          },
+          status: {
+            completed: 0,
+            failed: 0,
+            initial: 0,
+            processing: 0
+          },
+          lastUpdate: new Date().toISOString()
+        }
+      ]
+    };
+
+    const decoded = MigrationsStatusByDelegateResponse.decode(value);
+
+    if (E.isLeft(decoded)) {
+      throw new Error(`Failed to decode: ${readableReport(decoded.left)}`);
+    }
+  });
+
+  it("should decode an empty list", () => {
+    const value = {
+      items: []
+    };
+
+    const decoded = MigrationsStatusByDelegateResponse.decode(value);
+
+    if (E.isLeft(decoded)) {
+      throw new Error(`Failed to decode: ${readableReport(decoded.left)}`);
+    }
   });
 });
