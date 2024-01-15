@@ -124,13 +124,11 @@ export const getTargetIdFromAPIM = (
       config,
       apimClient
     )(`firstName eq '${organizationFiscalCode}'` as NonEmptyString),
-    TE.fold(
-      _ =>
-        getOrganizationFromAPIM(
-          config,
-          apimClient
-        )(`note eq '${organizationFiscalCode}'` as NonEmptyString),
-      TE.right
+    TE.orElse(_ =>
+      getOrganizationFromAPIM(
+        config,
+        apimClient
+      )(`note eq '${organizationFiscalCode}'` as NonEmptyString)
     ),
     TE.chain(([organizationTarget]) =>
       pipe(
