@@ -79,7 +79,9 @@ export const getAllSubscriptionsAvailableToMigrate = (
 export const getOrganizationFromAPIM = (
   config: IDecodableConfigAPIM,
   apimClient: ApiManagementClient
-) => (filter: NonEmptyString): TE.TaskEither<IApimUserError, UserContract[]> =>
+) => (
+  filter: NonEmptyString
+): TE.TaskEither<IApimUserError, ReadonlyArray<UserContract>> =>
   pipe(
     TE.tryCatch(
       async () => {
@@ -89,7 +91,7 @@ export const getOrganizationFromAPIM = (
           config.APIM_RESOURCE_GROUP,
           config.APIM_SERVICE_NAME,
           {
-            filter: filter
+            filter
           }
         )) {
           // eslint-disable-next-line functional/immutable-data
