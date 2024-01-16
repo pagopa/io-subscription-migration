@@ -1,4 +1,4 @@
-import { ApiManagementClient } from "@azure/arm-apimanagement";
+import { ApiManagementClient, UserContract } from "@azure/arm-apimanagement";
 import { flow, pipe } from "fp-ts/lib/function";
 import {
   NonEmptyString,
@@ -75,15 +75,13 @@ export const getAllSubscriptionsAvailableToMigrate = (
     sql => queryDataTable(pool, sql),
     TE.mapLeft(flow(toPostgreSQLErrorMessage, toPostgreSQLError))
   );
-/*
- * We need to retrieve target ID in full path from APIM needed to create the message queue for claim a single subscription
- */
-export const getTargetIdFromAPIM = (
+
+export const getOrganizationFromAPIM = (
   config: IDecodableConfigAPIM,
   apimClient: ApiManagementClient
 ) => (
-  organizationFiscalCode: OrganizationFiscalCode
-): TE.TaskEither<IApimUserError, ApimOrganizationUserResponse> =>
+  filter: NonEmptyString
+): TE.TaskEither<IApimUserError, ReadonlyArray<UserContract>> =>
   pipe(
     TE.tryCatch(
       async () => {
@@ -93,7 +91,7 @@ export const getTargetIdFromAPIM = (
           config.APIM_RESOURCE_GROUP,
           config.APIM_SERVICE_NAME,
           {
-            filter: `note eq '${organizationFiscalCode}'`
+            filter
           }
         )) {
           // eslint-disable-next-line functional/immutable-data
@@ -109,6 +107,28 @@ export const getTargetIdFromAPIM = (
     TE.filterOrElse(
       results => results.length > 0,
       () => toApimUserError("No Organization account found.")
+    )
+  );
+
+/*
+ * We need to retrieve target ID in full path from APIM needed to create the message queue for claim a single subscription
+ */
+export const getTargetIdFromAPIM = (
+  config: IDecodableConfigAPIM,
+  apimClient: ApiManagementClient
+) => (
+  organizationFiscalCode: OrganizationFiscalCode
+): TE.TaskEither<IApimUserError, ApimOrganizationUserResponse> =>
+  pipe(
+    getOrganizationFromAPIM(
+      config,
+      apimClient
+    )(`firstName eq '${organizationFiscalCode}'` as NonEmptyString),
+    TE.orElse(_ =>
+      getOrganizationFromAPIM(
+        config,
+        apimClient
+      )(`note eq '${organizationFiscalCode}'` as NonEmptyString)
     ),
     TE.chain(([organizationTarget]) =>
       pipe(
