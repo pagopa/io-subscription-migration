@@ -50,7 +50,7 @@ jobs:
         run: yarn lint
 
       - name: Validate definitions specification
-        run: npx oval validate -p definitions.yaml
+        run: npx oval validate -p openapi/index.yaml
 
       - name: Generate models
         run: yarn generate
