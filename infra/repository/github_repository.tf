@@ -20,18 +20,9 @@ resource "github_repository" "this" {
   has_issues      = false
   has_downloads   = true
 
-  topics = ["digital-citizenship"]
+  topics = []
 
   vulnerability_alerts = true
-
-  pages {
-    build_type = "legacy"
-
-    source {
-      branch = "gh-pages"
-      path   = "/"
-    }
-  }
 
   security_and_analysis {
     secret_scanning {
