@@ -76,6 +76,7 @@ runs:
       path: "${{ env.generatedCodeDir }}"
 
   - name: TEST
+    shell: bash
     run: |
       pwd
       echo ""
