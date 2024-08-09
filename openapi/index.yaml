@@ -118,7 +118,7 @@ paths:
             $ref: "#/definitions/ProblemJson"
   /delegates/{delegate_id}/claimed-ownerships:
     get:
-      operationId: getMigrationsStatusByDelegate
+      operationId: getMigrationsStatusByDelegate;
       summary: Retrieve claimed ownerships for a Delegate
       description: >-
         Given a Delegate, list all claimed ownerships grouped by Organization
