@@ -93,16 +93,6 @@ jobs:
           path: "${{ env.GENERATED_CODE_DIR }}"
           if-no-files-found: error
           retention-days: 7
-      
-      - name: TEST
-        run: |
-          pwd
-          echo ""
-          ls -la .
-          echo ""
-          echo "${{ env.GENERATED_CODE_DIR }}"
-          echo ""
-          ls -ls ${{ env.GENERATED_CODE_DIR }}
 
   deploy:
     if: ${{ !github.event.act }}
@@ -123,16 +113,6 @@ jobs:
           name: ${{ inputs.artifactName }}
           path: ${{ env.GENERATED_CODE_DIR }}
 
-      - name: TEST
-        run: |
-          pwd
-          echo ""
-          ls -la .
-          echo ""
-          echo "${{ env.GENERATED_CODE_DIR }}"
-          echo ""
-          ls -ls ${{ env.GENERATED_CODE_DIR }}
-
-      # - name: Publish
-      #   run: npm publish --access public --registry ${{ inputs.npmRegistry }}
-      #   working-directory: " ${{ env.GENERATED_CODE_DIR }}"
+      - name: Publish
+        run: npm publish --access public --registry ${{ inputs.npmRegistry }}
+        working-directory: " ${{ env.GENERATED_CODE_DIR }}"
