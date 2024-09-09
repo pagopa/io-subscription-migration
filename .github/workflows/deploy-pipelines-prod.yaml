@@ -14,4 +14,4 @@ jobs:
       app_name: 'io-p-subsmigrations-fn'
       use_staging_slot: true
       use_private_agent: true
-      health_check_path: 'api/v1/info'
+      health_check_path: '/api/v1/info'
