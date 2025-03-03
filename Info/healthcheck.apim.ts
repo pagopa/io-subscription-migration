@@ -12,14 +12,7 @@ import { getApiClient } from "../utils/apim";
 const apimHealthCheck = (config: IDecodableConfigAPIM): HealthCheck<"APIM"> =>
   pipe(
     TE.tryCatch(async () => {
-      const apimClient = getApiClient(
-        {
-          clientId: config.APIM_CLIENT_ID,
-          secret: config.APIM_SECRET,
-          tenantId: config.APIM_TENANT_ID
-        },
-        config.APIM_SUBSCRIPTION_ID
-      );
+      const apimClient = getApiClient(config.APIM_SUBSCRIPTION_ID);
       await apimClient.apiManagementService.get(
         config.APIM_RESOURCE_GROUP,
         config.APIM_SERVICE_NAME
