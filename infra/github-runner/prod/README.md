@@ -32,5 +32,7 @@ No inputs.
 
 ## Outputs
 
-No outputs.
+| Name | Description |
+|------|-------------|
+| <a name="output_container_app_job"></a> [container\_app\_job](#output\_container\_app\_job) | n/a |
 <!-- END OF PRE-COMMIT-TERRAFORM DOCS HOOK -->
