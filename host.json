@@ -18,8 +18,7 @@
       "routePrefix": ""
     },
     "queues": {
-      "maxPollingInterval": "00:00:15",
-      "batchSize": 32
+      "batchSize": 2
     }
   },
   "extensionBundle": {
